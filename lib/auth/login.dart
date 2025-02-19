@@ -1,10 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:hackfusion_android/pages/dashboard.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Import the shared_preferences package
+import 'package:hackfusion_android/auth/provider/UserAllDataProvier.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  const LoginPage({Key? key}) : super(key: key);
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -14,14 +15,9 @@ class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _firestore = FirebaseFirestore.instance;
+  final UserController userController = Get.find<UserController>();
   bool _isLoading = false;
   String _errorMessage = '';
-
-  // Function to save the logged-in email in SharedPreferences
-  Future<void> _saveEmailToSharedPreferences(String email) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('email', email); // Save email with key 'email'
-  }
 
   Future<void> _login() async {
     setState(() {
@@ -43,14 +39,11 @@ class _LoginPageState extends State<LoginPage> {
             _isLoading = false;
           });
 
-          // Save the email to SharedPreferences
-          await _saveEmailToSharedPreferences(_emailController.text);
+          // Save the email using the GetX controller
+          await userController.setUserEmail(_emailController.text);
 
-          // Navigate to the Dashboard (for now, just print the user details)
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => Dashboard()),
-          );
+          // Navigate to the Dashboard using GetX
+          Get.offAll(() => Dashboard());
         } else {
           setState(() {
             _isLoading = false;
@@ -120,20 +113,20 @@ class _LoginPageState extends State<LoginPage> {
               _isLoading
                   ? const CircularProgressIndicator(color: Colors.red)
                   : ElevatedButton(
-                      onPressed: _login,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 40, vertical: 15),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      child: const Text(
-                        'Login',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
+                onPressed: _login,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 40, vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: const Text(
+                  'Login',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
               if (_errorMessage.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 20),

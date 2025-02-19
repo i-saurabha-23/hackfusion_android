@@ -5,10 +5,10 @@ class AddEventPage extends StatefulWidget {
 
   final String organizationId; // Required to get the organization details
 
-  const AddEventPage({
-    super.key,
+  const AddEventPage({Key? key,
+
     required this.organizationId
-  });
+  }) : super(key: key);
 
   @override
   State<AddEventPage> createState() => _AddEventPageState();

@@ -1,13 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:hackfusion_android/pages/AddEventPage.dart';
-import 'package:hackfusion_android/pages/EventDetailsPage.dart'; // Import your event details page
-import 'package:intl/intl.dart'; // Importing the intl package for date formatting
+import 'package:intl/intl.dart';
+
+import 'AddEventPage.dart';
+import 'EventDetailsPage.dart'; // Importing the intl package for date formatting
 
 class EventsTab extends StatelessWidget {
   final String organizationId; // Accept organizationId as parameter
 
-  const EventsTab({super.key, required this.organizationId});
+  const EventsTab({Key? key, required this.organizationId}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {

@@ -1,25 +1,32 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:hackfusion_android/auth/login.dart';
-import 'package:hackfusion_android/pages/dashboard.dart';
+import 'package:get/get.dart';
+import 'package:hackfusion_android/auth/provider/UserAllDataProvier.dart';
+
+import 'auth/splashscreen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  runApp(const MyApp());
 
-  print('✅ Firebase Connected');
+  // Initialize the UserController globally
+  Get.put(UserController(), permanent: true);
+
+  runApp(const MyApp());
+  debugPrint('✅ Firebase Connected');
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return GetMaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const Dashboard(),
+      theme: ThemeData(
+        primarySwatch: Colors.red,
+      ),
+      home: SplashScreen(),
     );
   }
 }
-

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:hackfusion_android/pages/EventsTab.dart'; // Assuming EventsTab is defined
+
+import 'EventsTab.dart'; // Assuming EventsTab is defined
 
 class OrganizationDetails extends StatefulWidget {
   final String organizationId; // Required to get the organization details

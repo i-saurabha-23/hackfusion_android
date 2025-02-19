@@ -7,7 +7,7 @@ class EventDetailsPage extends StatelessWidget {
   final String eventId;
 
   const EventDetailsPage(
-      {super.key, required this.organizationId, required this.eventId});
+      {Key? key,  required this.organizationId, required this.eventId}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
