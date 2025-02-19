@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "102742026996",
+    "project_id": "hackfusion-b5df5",
+    "storage_bucket": "hackfusion-b5df5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:102742026996:android:7f5667129529ca23734ca1",
+        "android_client_info": {
+          "package_name": "com.hackfusion.hackfusion"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCZxLWr1Usv3tAWdAgYA8l8fipyBoS00h8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:102742026996:android:c11e273530ab3f1c734ca1",
+        "android_client_info": {
+          "package_name": "com.triroop.hackfusion_android"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCZxLWr1Usv3tAWdAgYA8l8fipyBoS00h8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
