@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:hackfusion_android/pages/SideMenuPages/Cheating/Cheating.dart';
 
 import '../auth/login.dart';
 import '../auth/provider/UserAllDataProvier.dart';
@@ -17,9 +18,10 @@ class _DashboardState extends State<Dashboard> {
   int _selectedIndex = 0;
 
   final List<Widget> _pages = [
-    const Page1(),
-    const OrganizationPage(),
-    const ComplaintPage(),
+     Page1(),
+     OrganizationPage(),
+    ComplaintPage(),
+    UploadFormPage(),
   ];
   final UserController userController = Get.put(UserController()); // Initialize userController
 
@@ -74,6 +76,14 @@ class _DashboardState extends State<Dashboard> {
               title: const Text('Complaint Page', style: TextStyle(color: Colors.white)),
               onTap: () {
                 _onItemTapped(2);
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings, color: Colors.red),
+              title: const Text('Cheating Record ', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                _onItemTapped(3);
                 Navigator.pop(context);
               },
             ),
