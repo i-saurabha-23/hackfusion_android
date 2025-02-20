@@ -5,12 +5,12 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-class UploadFormPage extends StatefulWidget {
+class CheatingRecords extends StatefulWidget {
   @override
-  _UploadFormPageState createState() => _UploadFormPageState();
+  _CheatingRecordsState createState() => _CheatingRecordsState();
 }
 
-class _UploadFormPageState extends State<UploadFormPage>
+class _CheatingRecordsState extends State<CheatingRecords>
     with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();

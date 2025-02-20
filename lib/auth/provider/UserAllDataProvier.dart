@@ -14,6 +14,12 @@ class UserController extends GetxController {
   final RxString userUniversityRollNo = ''.obs;
   final RxString userYear = ''.obs;
 
+  // New fields
+  final RxString userParentsName = ''.obs;
+  final RxString userParentsEmail = ''.obs;
+  final RxString userParentsMob = ''.obs;
+  final RxString userPassword = ''.obs;
+
   @override
   void onInit() {
     super.onInit();
@@ -68,6 +74,12 @@ class UserController extends GetxController {
         userSection.value = data['section'] ?? '';
         userUniversityRollNo.value = data['universityRollNo'] ?? '';
         userYear.value = data['year'] ?? '';
+
+        // New fields
+        userParentsName.value = data['parentsname'] ?? '';
+        userParentsEmail.value = data['parentsemail'] ?? '';
+        userParentsMob.value = data['parentsmob'] ?? '';
+        userPassword.value = data['password'] ?? '';
       } else {
         // If document doesn't exist, clear the details
         clearUserDetails();
@@ -89,5 +101,11 @@ class UserController extends GetxController {
     userSection.value = '';
     userUniversityRollNo.value = '';
     userYear.value = '';
+
+    // Clear new fields
+    userParentsName.value = '';
+    userParentsEmail.value = '';
+    userParentsMob.value = '';
+    userPassword.value = '';
   }
 }
