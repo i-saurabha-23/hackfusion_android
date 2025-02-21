@@ -35,7 +35,7 @@ class _StartHereState extends State<StartHere> {
       'color': Colors.orange,
       'route': '/cheatings',
     },
-    'Complaints': {
+    'COMPLAINTS': {
       'icon': Icons.report_problem,
       'color': Colors.red,
       'route': '/complaints',

@@ -207,7 +207,9 @@ class _ComplaintPageState extends State<ComplaintPage> {
     try {
       // Get the complaint count for the current user
       var complaintsSnapshot = await FirebaseFirestore.instance
-          .collection('Complaints')
+          .collection('SHOW-ALL')
+          .doc('COMPLAINTS')
+          .collection('DATA')
           .where('userEmail', isEqualTo: userEmail)
           .get();
 
@@ -217,7 +219,11 @@ class _ComplaintPageState extends State<ComplaintPage> {
       String complaintId = '$userEmail+C${complaintCount + 1}';
 
       // Create a new complaint document reference with the generated ID
-      var complaintRef = FirebaseFirestore.instance.collection('Complaints').doc(complaintId);
+      var complaintRef = FirebaseFirestore.instance
+          .collection('SHOW-ALL')
+          .doc('COMPLAINTS')
+          .collection('DATA')
+          .doc(complaintId);
       String? imageUrl;
 
       // Upload image if selected
@@ -241,6 +247,12 @@ class _ComplaintPageState extends State<ComplaintPage> {
         'imageUrl': imageUrl,
         'status': 'Pending', // Initial status
       });
+
+      // Set isInitialized true after creating the complaint document
+      await FirebaseFirestore.instance
+          .collection('SHOW-ALL')
+          .doc('COMPLAINTS')
+          .set({'isInitialized': true}, SetOptions(merge: true));
 
       // Reset form after submission
       _descriptionController.clear();
