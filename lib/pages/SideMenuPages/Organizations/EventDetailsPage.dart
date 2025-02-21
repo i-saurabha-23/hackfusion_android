@@ -40,8 +40,11 @@ class EventDetailsPage extends StatelessWidget {
           List eventBudget = event['budget'] ?? [];
 
           return Scaffold(
+            backgroundColor: Colors.white,
             appBar: AppBar(
-              title: Text(event['eventName'] ?? 'Event Details'),
+              backgroundColor: Colors.black,
+              iconTheme: IconThemeData(color: Colors.white),
+              title: Text(event['eventName'] ?? 'Event Details', style: TextStyle(color: Colors.white),),
             ),
             body: Padding(
               padding: const EdgeInsets.all(16.0),

@@ -56,12 +56,12 @@ class _OrganizationPageState extends State<OrganizationPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: _loggedInEmail.isEmpty
-          ? const Center(child: CircularProgressIndicator(color: Colors.red))
+          ? const Center(child: CircularProgressIndicator(color: Colors.black))
           : StreamBuilder<List<Map<String, String>>>(
         stream: _getOrganizationsStream(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: Colors.red));
+            return const Center(child: CircularProgressIndicator(color: Colors.black));
           } else if (snapshot.hasError) {
             return const Center(child: Text('Error fetching organizations'));
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
@@ -107,7 +107,7 @@ class _OrganizationPageState extends State<OrganizationPage> {
                       ),
                       trailing: const Icon(
                         Icons.arrow_forward_ios,
-                        color: Colors.red,
+                        color: Colors.black,
                       ),
                       onTap: () {
                         // Pass the organizationId from the _organizations list

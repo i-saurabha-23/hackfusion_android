@@ -288,12 +288,13 @@ class _ComplaintPageState extends State<ComplaintPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: DefaultTabController(
         length: 2,
         child: Column(
           children: [
             Container(
-              color: Colors.indigo,
+              color: Colors.black,
               child: const TabBar(
                 tabs: [
                   Tab(text: 'Submit New', icon: Icon(Icons.add_circle_outline)),
@@ -416,8 +417,8 @@ class _ComplaintPageState extends State<ComplaintPage> {
                     Center(
                       child: ElevatedButton.icon(
                         onPressed: _pickImage,
-                        icon: const Icon(Icons.photo_library),
-                        label: const Text('Select Image'),
+                        icon: const Icon(Icons.photo_library, color: Colors.black,),
+                        label: const Text('Select Image', style: TextStyle(color: Colors.black),),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.grey[200],
                           foregroundColor: Colors.black87,
@@ -438,7 +439,7 @@ class _ComplaintPageState extends State<ComplaintPage> {
                   : ElevatedButton(
                 onPressed: _submitComplaint,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.indigo,
+                  backgroundColor: Colors.black,
                   padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -446,7 +447,7 @@ class _ComplaintPageState extends State<ComplaintPage> {
                 ),
                 child: const Text(
                   'Submit Complaint',
-                  style: TextStyle(fontSize: 16),
+                  style: TextStyle(fontSize: 16, color: Colors.white),
                 ),
               ),
             ),
@@ -517,6 +518,7 @@ class _ComplaintPageState extends State<ComplaintPage> {
             final statusColor = _getStatusColor(complaint['status'] ?? 'Pending');
 
             return Card(
+              color: Colors.white,
               elevation: 2,
               margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
               child: ListTile(

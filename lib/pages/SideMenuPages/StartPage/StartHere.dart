@@ -52,6 +52,7 @@ class _StartHereState extends State<StartHere> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: StreamBuilder<QuerySnapshot>(
           stream: _firestore.collection("SHOW-ALL").snapshots(),

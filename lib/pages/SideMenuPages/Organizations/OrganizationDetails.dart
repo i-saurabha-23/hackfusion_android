@@ -37,6 +37,8 @@ class _OrganizationDetailsState extends State<OrganizationDetails>
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
+
+        iconTheme: IconThemeData(color: Colors.white),
         title: StreamBuilder<DocumentSnapshot>(
           stream: FirebaseFirestore.instance
               .collection('Organization')
@@ -76,7 +78,7 @@ class _OrganizationDetailsState extends State<OrganizationDetails>
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: Colors.red));
+            return const Center(child: CircularProgressIndicator(color: Colors.black));
           } else if (snapshot.hasError) {
             return const Center(child: Text('Error loading organization details'));
           } else if (!snapshot.hasData || !snapshot.data!.exists) {

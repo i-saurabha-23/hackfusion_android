@@ -196,7 +196,7 @@ class _CampusBookingState extends State<CampusBooking> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.blue[700]!, width: 2),
+            borderSide: BorderSide(color: Colors.black, width: 2),
           ),
           filled: true,
           fillColor: Colors.white,
@@ -231,7 +231,7 @@ class _CampusBookingState extends State<CampusBooking> {
         ),
         child: Row(
           children: [
-            Icon(Icons.calendar_today, color: Colors.blue[700]),
+            Icon(Icons.calendar_today, color: Colors.black),
             SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -276,6 +276,7 @@ class _CampusBookingState extends State<CampusBooking> {
             : Colors.red;
 
     return Card(
+      color: Colors.white,
       elevation: 2,
       margin: EdgeInsets.symmetric(vertical: 8, horizontal: 4),
       shape: RoundedRectangleBorder(
@@ -340,7 +341,7 @@ class _CampusBookingState extends State<CampusBooking> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Colors.white,
       body: SingleChildScrollView(
         controller: _scrollController,
         child: SafeArea(
@@ -352,6 +353,7 @@ class _CampusBookingState extends State<CampusBooking> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Card(
+                    color: Colors.white,
                     elevation: 2,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
@@ -366,7 +368,7 @@ class _CampusBookingState extends State<CampusBooking> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: Colors.blue[800],
+                              color: Colors.black,
                             ),
                           ),
                           SizedBox(height: 16),
@@ -420,7 +422,7 @@ class _CampusBookingState extends State<CampusBooking> {
                                 }
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue[700],
+                                backgroundColor: Colors.black,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),
                                 ),
@@ -446,7 +448,7 @@ class _CampusBookingState extends State<CampusBooking> {
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Colors.blue[900],
+                      color: Colors.black,
                     ),
                   ),
                   SizedBox(height: 16),
@@ -463,7 +465,7 @@ class _CampusBookingState extends State<CampusBooking> {
                         return Center(
                           child: CircularProgressIndicator(
                             valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.blue[700]!),
+                                Colors.black),
                           ),
                         );
                       }

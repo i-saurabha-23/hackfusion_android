@@ -51,6 +51,7 @@ class EventsTab extends StatelessWidget {
                 var eventId = snapshot.data!.docs[index].id;
 
                 return Card(
+                  color: Colors.white,
                   margin: const EdgeInsets.all(15.0),
                   elevation: 4,
                   child: GestureDetector(
@@ -90,7 +91,7 @@ class EventsTab extends StatelessWidget {
                   ),
                 );
               },
-              backgroundColor: Colors.red,
+              backgroundColor: Colors.black,
               child: const Icon(Icons.add, color: Colors.white),
             ),
           );

@@ -18,8 +18,9 @@ class _CheatingsState extends State<Cheatings> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        iconTheme: IconThemeData(color: Colors.white),
         title: const Text('Cheating Records', style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.redAccent,
+        backgroundColor: Colors.black,
       ),
       backgroundColor: Colors.white,
       body: StreamBuilder<QuerySnapshot>(
@@ -28,7 +29,7 @@ class _CheatingsState extends State<Cheatings> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(
               child: LoadingAnimationWidget.staggeredDotsWave(
-                color: Colors.redAccent,
+                color: Colors.black,
                 size: 50,
               ),
             );
@@ -55,6 +56,7 @@ class _CheatingsState extends State<Cheatings> {
                   : 'Unknown date';
 
               return Card(
+                color: Colors.white,
                 margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
                 elevation: 5,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -93,7 +95,7 @@ class _CheatingsState extends State<Cheatings> {
                           imageUrl: data['proof'] ?? '',
                           placeholder: (context, url) => Center(
                             child: LoadingAnimationWidget.staggeredDotsWave(
-                              color: Colors.redAccent,
+                              color: Colors.black,
                               size: 50,
                             ),
                           ),

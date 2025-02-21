@@ -16,9 +16,11 @@ class ComplaintDetailsPage extends StatelessWidget {
         : 'Date pending';
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Complaint Details'),
-        backgroundColor: Colors.indigo,
+        title: const Text('Complaint Details', style: TextStyle(color: Colors.white),),
+        backgroundColor: Colors.black,
+        iconTheme: IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -59,6 +61,7 @@ class ComplaintDetailsPage extends StatelessWidget {
 
               // Complaint Details Card
               Card(
+                color: Colors.white,
                 elevation: 2,
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -109,6 +112,7 @@ class ComplaintDetailsPage extends StatelessWidget {
               // Attachment Card
               if (complaint['imageUrl'] != null && complaint['imageUrl'].toString().isNotEmpty)
                 Card(
+                  color: Colors.white,
                   elevation: 2,
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),

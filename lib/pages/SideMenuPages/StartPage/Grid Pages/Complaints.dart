@@ -18,12 +18,12 @@ class _ComplaintsState extends State<Complaints> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Complaints', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
+        title: const Text('Complaints', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.black,
         elevation: 1,
-        iconTheme: const IconThemeData(color: Colors.black),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
-      backgroundColor: Colors.grey[200], // Light background for better readability
+      backgroundColor: Colors.white, // Light background for better readability
       body: StreamBuilder<QuerySnapshot>(
         stream: _firestore.collection('Complaints').orderBy('timestamp', descending: true).snapshots(),
         builder: (context, snapshot) {
@@ -57,6 +57,7 @@ class _ComplaintsState extends State<Complaints> {
                   : 'Unknown date';
 
               return Card(
+                color: Colors.white,
                 margin: const EdgeInsets.symmetric(vertical: 10),
                 elevation: 4,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

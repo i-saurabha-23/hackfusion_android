@@ -43,7 +43,7 @@ class Profile_Screen extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [Color(0xFF6C63FF).withOpacity(0.9), Colors.white],
+              colors: [Color(0xFF000000).withOpacity(0.9), Colors.white],
               stops: [0.0, 0.3],
             ),
           ),
@@ -65,7 +65,7 @@ class Profile_Screen extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 42,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF6C63FF),
+                            color: Color(0xFF000000),
                           ),
                         ),
                       ),
@@ -181,7 +181,7 @@ class Profile_Screen extends StatelessWidget {
             padding: EdgeInsets.all(16),
             child: Row(
               children: [
-                Icon(icon, color: Color(0xFF6C63FF)),
+                Icon(icon, color: Color(0xFF000000)),
                 SizedBox(width: 12),
                 Text(
                   title,
@@ -210,13 +210,13 @@ class Profile_Screen extends StatelessWidget {
                         height: 24,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: Color(0xFF6C63FF).withOpacity(0.1),
+                          color: Color(0xFF000000).withOpacity(0.1),
                           shape: BoxShape.circle,
                         ),
                         child: Text(
                           '${index + 1}',
                           style: TextStyle(
-                            color: Color(0xFF6C63FF),
+                            color: Color(0xFF000000),
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                           ),
