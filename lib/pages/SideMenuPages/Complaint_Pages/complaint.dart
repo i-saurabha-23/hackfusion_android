@@ -100,7 +100,7 @@ class _ComplaintPageState extends State<ComplaintPage> {
       final safeSearchAnnotation = responseBody['responses'][0]['safeSearchAnnotation'];
 
       // Check if the image contains adult or racy content
-      if (safeSearchAnnotation['adult'] == 'VERY_LIKELY' || safeSearchAnnotation['racy'] == 'VERY_LIKELY' || safeSearchAnnotation['racy'] == 'LIKELY') {
+      if (safeSearchAnnotation['adult'] == 'VERY_LIKELY' || safeSearchAnnotation['racy'] == 'VERY_LIKELY') {
         return true; // Image contains adult or racy content
       }
     } else {
