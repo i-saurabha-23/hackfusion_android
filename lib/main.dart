@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hackfusion_android/auth/provider/UserAllDataProvier.dart';
+import 'package:hackfusion_android/pages/SideMenuPages/CampusBooking/booking.dart';
 import 'auth/splashscreen.dart';
 
 void main() async {

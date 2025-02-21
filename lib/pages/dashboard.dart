@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:hackfusion_android/pages/SideMenuPages/CampusBooking/booking.dart';
 import 'package:hackfusion_android/pages/SideMenuPages/Cheating/Cheating.dart';
 import 'package:hackfusion_android/pages/SideMenuPages/Elections_Votes/ActiveElection.dart';
 import '../auth/login.dart';
@@ -21,7 +22,7 @@ class _DashboardState extends State<Dashboard> {
     Page1(),
     OrganizationPage(),
     ComplaintPage(),
-    CheatingRecords(),
+    CampusBooking(),
     ActiveElection(),
   ];
   final UserController userController = Get.put(UserController());
@@ -112,7 +113,7 @@ class _DashboardState extends State<Dashboard> {
               _buildDrawerItem(Icons.dashboard_rounded, 'Dashboard', 0),
               _buildDrawerItem(Icons.groups_rounded, 'Organization', 1),
               _buildDrawerItem(Icons.report_problem_rounded, 'Complaints', 2),
-              _buildDrawerItem(Icons.warning_rounded, 'Cheating Records', 3),
+              _buildDrawerItem(Icons.warning_rounded, 'Campus Venue Booking', 3),
               _buildDrawerItem(Icons.how_to_vote_outlined, 'Elections', 4),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
