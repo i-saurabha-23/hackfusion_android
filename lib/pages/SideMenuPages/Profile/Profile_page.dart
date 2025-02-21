@@ -2,28 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hackfusion_android/auth/provider/UserAllDataProvier.dart';
 
-class Page1 extends StatelessWidget {
-  const Page1({Key? key}) : super(key: key);
+class Profile_Screen extends StatelessWidget {
+  const Profile_Screen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final userController = Get.find<UserController>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('User Profile', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Color(0xFF6C63FF),
-        elevation: 0,
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.edit),
-            onPressed: () {
-              // Edit profile action
-            },
-          ),
-        ],
-      ),
       body: Obx(() {
         if (userController.userEmail.value.isEmpty) {
           return Center(

@@ -187,21 +187,21 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     SizedBox(height: 15),
                     // Forgot Password Link
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () {
-                          // Forgot password functionality
-                        },
-                        child: Text(
-                          'Forgot Password?',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ),
+                    // Align(
+                    //   alignment: Alignment.centerRight,
+                    //   child: TextButton(
+                    //     onPressed: () {
+                    //       // Forgot password functionality
+                    //     },
+                    //     child: Text(
+                    //       'Forgot Password?',
+                    //       style: TextStyle(
+                    //         color: Colors.white,
+                    //         fontWeight: FontWeight.w500,
+                    //       ),
+                    //     ),
+                    //   ),
+                    // ),
                     SizedBox(height: 30),
                     // Login Button
                     Container(

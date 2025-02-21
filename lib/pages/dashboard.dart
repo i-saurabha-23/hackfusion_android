@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hackfusion_android/pages/SideMenuPages/CampusBooking/booking.dart';
 import 'package:hackfusion_android/pages/SideMenuPages/Elections_Votes/ActiveElection.dart';
-import 'package:hackfusion_android/pages/SideMenuPages/Profile/Page1.dart';
+import 'package:hackfusion_android/pages/SideMenuPages/Profile/Profile_page.dart';
 import 'package:hackfusion_android/pages/SideMenuPages/StartPage/StartHere.dart';
-
 import '../auth/login.dart';
 import '../auth/provider/UserAllDataProvier.dart';
 import 'SideMenuPages/Complaint_Pages/complaint.dart';
@@ -26,8 +25,36 @@ class _DashboardState extends State<Dashboard> {
     ComplaintPage(),
     CampusBooking(),
     ActiveElection(),
-    Page1(),
+    Profile_Screen(),
   ];
+
+  final List<Map<String, dynamic>> _appBarDetails = [
+    {
+      'title': 'Dashboard',
+      'color': Colors.black,
+    },
+    {
+      'title': 'Organization',
+      'color': Colors.black,
+    },
+    {
+      'title': 'Complaints',
+      'color': Colors.black,
+    },
+    {
+      'title': 'Campus Venue Booking',
+      'color': Colors.black,
+    },
+    {
+      'title': 'Elections',
+      'color': Colors.black,
+    },
+    {
+      'title': 'Profile',
+      'color': Colors.black,
+    },
+  ];
+
   final UserController userController = Get.put(UserController());
 
   void _onItemTapped(int index) {
@@ -40,11 +67,12 @@ class _DashboardState extends State<Dashboard> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.teal,
-        title: const Text(
-          'Dashboard',
-          style: TextStyle(
+        iconTheme: IconThemeData(color: Colors.white),
+        elevation: 1,
+        backgroundColor: _appBarDetails[_selectedIndex]['color'],
+        title: Text(
+          _appBarDetails[_selectedIndex]['title'],
+          style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
             letterSpacing: 1.2,
@@ -54,10 +82,6 @@ class _DashboardState extends State<Dashboard> {
           IconButton(
             icon: const Icon(Icons.notifications_outlined, color: Colors.white),
             onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white),
-            onPressed: logout,
           ),
         ],
       ),
@@ -70,7 +94,7 @@ class _DashboardState extends State<Dashboard> {
               Container(
                 height: 180,
                 decoration: BoxDecoration(
-                  color: Colors.teal,
+                  color: Colors.black,
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -87,27 +111,27 @@ class _DashboardState extends State<Dashboard> {
                           color: Colors.white,
                         ),
                         child: Icon(
-                          Icons.sports_esports,
+                          Icons.person_pin,
                           size: 40,
-                          color: Colors.teal,
+                          color: Colors.black,
                         ),
                       ),
                       const SizedBox(height: 12),
                       const Text(
-                        'Squid Game',
+                        'Student Dashboard',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const Text(
-                        'Admin Dashboard',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 14,
-                        ),
-                      ),
+                      // const Text(
+                      //   'Admin Dashboard',
+                      //   style: TextStyle(
+                      //     color: Colors.white70,
+                      //     fontSize: 14,
+                      //   ),
+                      // ),
                     ],
                   ),
                 ),
@@ -143,12 +167,9 @@ class _DashboardState extends State<Dashboard> {
                   style: TextStyle(color: Colors.grey.shade800),
                 ),
                 onTap: () {
-                  // Call your logout logic (if any) then navigate to the LoginScreen.
-                  // For example, if you have a logout function:
                   logout();
                 },
               ),
-
               SizedBox(height: 40),
               Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -167,7 +188,7 @@ class _DashboardState extends State<Dashboard> {
       ),
       body: Container(
         decoration: BoxDecoration(
-          color: Colors.grey.shade100,
+          color: Colors.grey.shade50,
         ),
         child: _pages[_selectedIndex],
       ),
@@ -179,19 +200,19 @@ class _DashboardState extends State<Dashboard> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: isSelected ? Colors.teal.withOpacity(0.1) : Colors.transparent,
+        color: isSelected ? Colors.black.withOpacity(0.1) : Colors.transparent,
         borderRadius: BorderRadius.circular(10),
       ),
       child: ListTile(
         leading: Icon(
           icon,
-          color: isSelected ? Colors.teal : Colors.grey.shade700,
+          color: isSelected ? Colors.black : Colors.grey.shade700,
           size: 26,
         ),
         title: Text(
           title,
           style: TextStyle(
-            color: isSelected ? Colors.teal : Colors.grey.shade800,
+            color: isSelected ? Colors.black : Colors.grey.shade800,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),
@@ -209,7 +230,6 @@ class _DashboardState extends State<Dashboard> {
   }
 }
 
-// Extension method to repeat strings
 extension StringExtension on String {
   String repeat(int times) {
     String result = '';

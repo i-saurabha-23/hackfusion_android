@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:hackfusion_android/pages/SideMenuPages/StartPage/Grid%20Pages/Cheatings.dart';
 import 'Grid Pages/CampusVenueBookings.dart'; // Import the CampusVenueBookings screen
+import 'Grid Pages/Complaints.dart'; // Import the CampusVenueBookings screen
 
 class StartHere extends StatefulWidget {
   const StartHere({Key? key}) : super(key: key);
@@ -95,6 +97,22 @@ class _StartHereState extends State<StartHere> {
                         context,
                         MaterialPageRoute(
                           builder: (context) => const CampusVenueBookings(),
+                        ),
+                      );
+                    } else if (docId == "CHEATING-RECORD") {
+                      // For CAMPUS-BOOKING, push CampusVenueBookings screen directly.
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const Cheatings(),
+                        ),
+                      );
+                    }  else if (docId == "COMPLAINTS") {
+                      // For CAMPUS-BOOKING, push CampusVenueBookings screen directly.
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const Complaints(),
                         ),
                       );
                     } else {
