@@ -59,24 +59,41 @@ class _CampusBookingState extends State<CampusBooking> {
   // Function to format the document name
   Future<String> _generateDocumentName() async {
     String formattedStartDate =
-    DateFormat("yyyy-MM-dd'T'HH:mm").format(startDate!);
+        DateFormat("yyyy-MM-dd'T'HH:mm").format(startDate!);
     String formattedEndDate = DateFormat("yyyy-MM-dd'T'HH:mm").format(endDate!);
 
     return '${selectedVenue}_${formattedStartDate}_${formattedEndDate}';
   }
 
-  // Function to check if the booking already exists
+// Function to check if the booking already exists with overlap logic
   Future<bool> _checkIfBookingExists() async {
     try {
-      String documentName = await _generateDocumentName();
-      DocumentReference bookingDoc = _firestore
+      // Query to check if there are any bookings for the same venue, department, year, and section
+      // that overlap with the new booking's time range.
+      QuerySnapshot querySnapshot = await _firestore
           .collection('SHOW-ALL')
           .doc('CAMPUS-BOOKING')
           .collection('DATA')
-          .doc(documentName);
+          .where('venue', isEqualTo: selectedVenue)
+          .where('department', isEqualTo: selectedDepartment)
+          .where('year', isEqualTo: selectedYear)
+          .where('section', isEqualTo: selectedSection)
+          .get();
 
-      DocumentSnapshot docSnapshot = await bookingDoc.get();
-      return docSnapshot.exists;
+      // Check each booking's time range for overlap
+      for (var doc in querySnapshot.docs) {
+        DateTime existingStartDate = DateTime.parse(doc['startDate']);
+        DateTime existingEndDate = DateTime.parse(doc['endDate']);
+
+        // Check if the new booking's start and end date overlap with the existing ones
+        if ((startDate!.isBefore(existingEndDate) &&
+                endDate!.isAfter(existingStartDate)) ||
+            (startDate!.isAtSameMomentAs(existingStartDate) ||
+                endDate!.isAtSameMomentAs(existingEndDate))) {
+          return true; // There is an overlap, so the booking cannot be made
+        }
+      }
+      return false; // No overlap, booking can be made
     } catch (e) {
       print('Error checking booking existence: $e');
       return false;
@@ -134,14 +151,14 @@ class _CampusBookingState extends State<CampusBooking> {
       CollectionReference showAllCollection = _firestore.collection('SHOW-ALL');
       String documentName = await _generateDocumentName();
       DocumentReference campusBookingDoc =
-      showAllCollection.doc('CAMPUS-BOOKING');
+          showAllCollection.doc('CAMPUS-BOOKING');
 
       await campusBookingDoc.set({
         'initialized': true,
       }, SetOptions(merge: true));
 
       CollectionReference dataSubCollection =
-      campusBookingDoc.collection('DATA');
+          campusBookingDoc.collection('DATA');
 
       DocumentReference bookingDoc = dataSubCollection.doc(documentName);
       await bookingDoc.set(bookingData);
@@ -234,7 +251,8 @@ class _CampusBookingState extends State<CampusBooking> {
                         : DateFormat('MMM dd, yyyy - hh:mm a').format(dateTime),
                     style: TextStyle(
                       fontSize: 16,
-                      color: dateTime == null ? Colors.grey[600] : Colors.black87,
+                      color:
+                          dateTime == null ? Colors.grey[600] : Colors.black87,
                     ),
                   ),
                 ],
@@ -254,8 +272,8 @@ class _CampusBookingState extends State<CampusBooking> {
     Color statusColor = status.toLowerCase() == 'approved'
         ? Colors.green
         : status.toLowerCase() == 'pending'
-        ? Colors.orange
-        : Colors.red;
+            ? Colors.orange
+            : Colors.red;
 
     return Card(
       elevation: 2,
@@ -356,25 +374,29 @@ class _CampusBookingState extends State<CampusBooking> {
                             label: 'Select Venue',
                             items: venues,
                             value: selectedVenue,
-                            onChanged: (value) => setState(() => selectedVenue = value),
+                            onChanged: (value) =>
+                                setState(() => selectedVenue = value),
                           ),
                           _buildFormField(
                             label: 'Select Department',
                             items: departments,
                             value: selectedDepartment,
-                            onChanged: (value) => setState(() => selectedDepartment = value),
+                            onChanged: (value) =>
+                                setState(() => selectedDepartment = value),
                           ),
                           _buildFormField(
                             label: 'Select Year',
                             items: years,
                             value: selectedYear,
-                            onChanged: (value) => setState(() => selectedYear = value),
+                            onChanged: (value) =>
+                                setState(() => selectedYear = value),
                           ),
                           _buildFormField(
                             label: 'Select Section',
                             items: sections,
                             value: selectedSection,
-                            onChanged: (value) => setState(() => selectedSection = value),
+                            onChanged: (value) =>
+                                setState(() => selectedSection = value),
                           ),
                           SizedBox(height: 8),
                           _buildDateTimePicker(
@@ -433,13 +455,15 @@ class _CampusBookingState extends State<CampusBooking> {
                         .collection('SHOW-ALL')
                         .doc('CAMPUS-BOOKING')
                         .collection('DATA')
-                        .where('userEmail', isEqualTo: userController.userEmail.value)
+                        .where('userEmail',
+                            isEqualTo: userController.userEmail.value)
                         .snapshots(),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return Center(
                           child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.blue[700]!),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.blue[700]!),
                           ),
                         );
                       }
@@ -480,7 +504,9 @@ class _CampusBookingState extends State<CampusBooking> {
                           .toList();
 
                       return Column(
-                        children: bookings.map((booking) => _buildBookingCard(booking)).toList(),
+                        children: bookings
+                            .map((booking) => _buildBookingCard(booking))
+                            .toList(),
                       );
                     },
                   ),
