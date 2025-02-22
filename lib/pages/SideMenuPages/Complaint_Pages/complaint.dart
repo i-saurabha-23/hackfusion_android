@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:hackfusion_android/All_Constant.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:get/get.dart';
@@ -69,9 +70,8 @@ class _ComplaintPageState extends State<ComplaintPage> {
 
   Future<bool> _checkAdultContent(File image) async {
     final base64Image = base64Encode(await image.readAsBytes());
-    final String apiKey = 'AIzaSyCU8kcVOf8o1qnSXbSjMc104uTJfHGsnyU'; // Replace with your actual API key
 
-    final url = 'https://vision.googleapis.com/v1/images:annotate?key=$apiKey';
+    final url = GoogleVision_BaseUrl+GoogleAPiKey ;
 
     final requestBody = json.encode({
       "requests": [
