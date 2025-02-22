@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:hackfusion_android/pages/SideMenuPages/CampusBooking/LeaveApplication.dart';
+import 'package:hackfusion_android/pages/SideMenuPages/LeaveApplication/LeaveApplication.dart';
 import 'package:hackfusion_android/pages/SideMenuPages/CampusBooking/booking.dart';
 import 'package:hackfusion_android/pages/SideMenuPages/CampusLocation/TrackLocation.dart';
 import 'package:hackfusion_android/pages/SideMenuPages/Elections_Votes/ActiveElection.dart';

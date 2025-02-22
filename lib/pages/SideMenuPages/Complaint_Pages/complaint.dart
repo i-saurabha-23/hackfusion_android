@@ -22,7 +22,7 @@ class _ComplaintPageState extends State<ComplaintPage> {
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _categoryController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
-  bool _isImageProcessing = false; // Add this variable to track image processing state
+  bool _isImageProcessing = false;
   bool _isSubmitting = false;
   File? _selectedImage;
   final List<String> _predefinedCategories = [
@@ -35,34 +35,32 @@ class _ComplaintPageState extends State<ComplaintPage> {
 
   final UserController _userController = Get.put(UserController());
 
-  Future<void> _pickImage() async {
+  Future<void> _pickImage(ImageSource source) async {
     final XFile? image = await _picker.pickImage(
-      source: ImageSource.gallery,
+      source: source,
       imageQuality: 80,
     );
 
     if (image != null) {
       setState(() {
         _selectedImage = File(image.path);
-        _isImageProcessing = true; // Start image processing
+        _isImageProcessing = true;
       });
 
-      // Print the API response for debugging
       print('Image selected: ${image.path}');
 
-      // Check for adult or racy content
       final isAdultContent = await _checkAdultContent(File(image.path));
 
       if (isAdultContent) {
         setState(() {
-          _selectedImage = null; // Remove the image if it contains adult content
-          _isImageProcessing = false; // Stop image processing
+          _selectedImage = null;
+          _isImageProcessing = false;
         });
 
-        _showAdultContentDialog(); // Show the popup for inappropriate content
+        _showAdultContentDialog();
       } else {
         setState(() {
-          _isImageProcessing = false; // Stop image processing
+          _isImageProcessing = false;
         });
       }
     }
@@ -71,7 +69,7 @@ class _ComplaintPageState extends State<ComplaintPage> {
   Future<bool> _checkAdultContent(File image) async {
     final base64Image = base64Encode(await image.readAsBytes());
 
-    final url = GoogleVision_BaseUrl+GoogleAPiKey ;
+    final url = GoogleVision_BaseUrl+GoogleAPiKey;
 
     final requestBody = json.encode({
       "requests": [
@@ -92,32 +90,30 @@ class _ComplaintPageState extends State<ComplaintPage> {
       body: requestBody,
     );
 
-    // Print the API response to the console
     print('API Response: ${response.body}');
 
     if (response.statusCode == 200) {
       final responseBody = json.decode(response.body);
       final safeSearchAnnotation = responseBody['responses'][0]['safeSearchAnnotation'];
 
-      // Check if the image contains adult or racy content
       if (safeSearchAnnotation['adult'] == 'VERY_LIKELY' || safeSearchAnnotation['racy'] == 'VERY_LIKELY') {
-        return true; // Image contains adult or racy content
+        return true;
       }
     } else {
       print('Error with Vision API: ${response.statusCode}');
     }
 
-    return false; // Image does not contain adult or racy content
+    return false;
   }
 
   void _showAdultContentDialog() {
     showDialog(
       context: context,
-      barrierDismissible: false, // Prevent closing the dialog by tapping outside
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16), // Rounded corners
+            borderRadius: BorderRadius.circular(16),
           ),
           title: const Text(
             'Inappropriate Content',
@@ -140,7 +136,7 @@ class _ComplaintPageState extends State<ComplaintPage> {
           actions: <Widget>[
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop();
               },
               child: const Text(
                 'OK',
@@ -157,16 +153,13 @@ class _ComplaintPageState extends State<ComplaintPage> {
     if (_selectedImage == null) return null;
 
     try {
-      // Create a reference to the image location in Firebase Storage
       final storageRef = FirebaseStorage.instance
           .ref()
           .child('complaint_images')
           .child('$complaintId.jpg');
 
-      // Upload the file
       await storageRef.putFile(_selectedImage!);
 
-      // Get download URL
       final imageUrl = await storageRef.getDownloadURL();
       return imageUrl;
     } catch (e) {
@@ -176,7 +169,6 @@ class _ComplaintPageState extends State<ComplaintPage> {
   }
 
   Future<void> _submitComplaint() async {
-    // Validate inputs
     if (_descriptionController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a description')),
@@ -191,7 +183,6 @@ class _ComplaintPageState extends State<ComplaintPage> {
       return;
     }
 
-    // Get the current user's email and student details from UserController
     String userEmail = _userController.userEmail.value;
     String userName = _userController.userName.value;
     String userNumber = _userController.userPhone.value;
@@ -205,7 +196,6 @@ class _ComplaintPageState extends State<ComplaintPage> {
     });
 
     try {
-      // Get the complaint count for the current user
       var complaintsSnapshot = await FirebaseFirestore.instance
           .collection('SHOW-ALL')
           .doc('COMPLAINTS')
@@ -214,24 +204,18 @@ class _ComplaintPageState extends State<ComplaintPage> {
           .get();
 
       int complaintCount = complaintsSnapshot.docs.length;
-
-      // Generate a new complaint document ID using email + complaint count (e.g., email+C1)
       String complaintId = '$userEmail+C${complaintCount + 1}';
-
-      // Create a new complaint document reference with the generated ID
       var complaintRef = FirebaseFirestore.instance
           .collection('SHOW-ALL')
           .doc('COMPLAINTS')
           .collection('DATA')
           .doc(complaintId);
-      String? imageUrl;
 
-      // Upload image if selected
+      String? imageUrl;
       if (_selectedImage != null) {
         imageUrl = await _uploadImageToStorage(complaintId);
       }
 
-      // Adding complaint details to Firestore including the student's information
       await complaintRef.set({
         'Email': userEmail,
         'Name': userName,
@@ -245,16 +229,14 @@ class _ComplaintPageState extends State<ComplaintPage> {
         'timestamp': FieldValue.serverTimestamp(),
         'complaintId': complaintId,
         'imageUrl': imageUrl,
-        'status': 'Pending', // Initial status
+        'status': 'Pending',
       });
 
-      // Set isInitialized true after creating the complaint document
       await FirebaseFirestore.instance
           .collection('SHOW-ALL')
           .doc('COMPLAINTS')
           .set({'isInitialized': true}, SetOptions(merge: true));
 
-      // Reset form after submission
       _descriptionController.clear();
       _categoryController.clear();
       setState(() {
@@ -262,7 +244,6 @@ class _ComplaintPageState extends State<ComplaintPage> {
         _isSubmitting = false;
       });
 
-      // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Complaint submitted successfully'),
@@ -274,7 +255,6 @@ class _ComplaintPageState extends State<ComplaintPage> {
       setState(() {
         _isSubmitting = false;
       });
-      // Show error message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error: $e'),
@@ -334,7 +314,6 @@ class _ComplaintPageState extends State<ComplaintPage> {
             ),
             const SizedBox(height: 20),
 
-            // Category as TextField instead of Dropdown
             TextField(
               controller: _categoryController,
               decoration: const InputDecoration(
@@ -349,7 +328,6 @@ class _ComplaintPageState extends State<ComplaintPage> {
 
             const SizedBox(height: 16),
 
-            // Description TextField
             TextField(
               controller: _descriptionController,
               decoration: const InputDecoration(
@@ -363,7 +341,7 @@ class _ComplaintPageState extends State<ComplaintPage> {
 
             const SizedBox(height: 20),
 
-            // Image Upload Section
+            // Enhanced Image Upload Section
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -390,7 +368,7 @@ class _ComplaintPageState extends State<ComplaintPage> {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(8),
                             image: _isImageProcessing
-                                ? null // Don't show the image while processing
+                                ? null
                                 : DecorationImage(
                               image: FileImage(_selectedImage!),
                               fit: BoxFit.cover,
@@ -398,11 +376,11 @@ class _ComplaintPageState extends State<ComplaintPage> {
                           ),
                           child: _isImageProcessing
                               ? const Center(
-                            child: CircularProgressIndicator(), // Show loading animation
+                            child: CircularProgressIndicator(),
                           )
                               : null,
                         ),
-                        if (!_isImageProcessing) // Show cancel button only after processing
+                        if (!_isImageProcessing)
                           IconButton(
                             icon: const Icon(Icons.cancel, color: Colors.red),
                             onPressed: () {
@@ -414,16 +392,35 @@ class _ComplaintPageState extends State<ComplaintPage> {
                       ],
                     ),
                   ] else ...[
-                    Center(
-                      child: ElevatedButton.icon(
-                        onPressed: _pickImage,
-                        icon: const Icon(Icons.photo_library, color: Colors.black,),
-                        label: const Text('Select Image', style: TextStyle(color: Colors.black),),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[200],
-                          foregroundColor: Colors.black87,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () => _pickImage(ImageSource.gallery),
+                            icon: const Icon(Icons.photo_library, color: Colors.black),
+                            label: const Text('Gallery', style: TextStyle(color: Colors.black)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.grey[200],
+                              foregroundColor: Colors.black87,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () => _pickImage(ImageSource.camera),
+                            icon: const Icon(Icons.camera_alt, color: Colors.black),
+                            label: const Text('Camera', style: TextStyle(color: Colors.black)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.grey[200],
+                              foregroundColor: Colors.black87,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ],
@@ -432,7 +429,6 @@ class _ComplaintPageState extends State<ComplaintPage> {
 
             const SizedBox(height: 30),
 
-            // Submit Button
             Center(
               child: _isSubmitting
                   ? const CircularProgressIndicator()
@@ -460,8 +456,10 @@ class _ComplaintPageState extends State<ComplaintPage> {
   Widget _buildComplaintsList() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
-          .collection('Complaints')
-          .snapshots(), // Fetch all complaints from the collection
+          .collection('SHOW-ALL')
+          .doc('COMPLAINTS')
+          .collection('DATA')
+          .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -489,20 +487,17 @@ class _ComplaintPageState extends State<ComplaintPage> {
           );
         }
 
-        // Filter documents based on the user's email in the document ID (email+C1, email+C2, etc.)
         final complaints = snapshot.data!.docs.where((doc) {
           final docId = doc.id;
-          return docId.startsWith(_userController.userEmail.value + '+');  // Filter by email+C1, email+C2...
+          return docId.startsWith(_userController.userEmail.value + '+');
         }).toList();
 
-        // Sort complaints by timestamp
         complaints.sort((a, b) {
           final timestampA = (a.data() as Map<String, dynamic>)['timestamp'] as Timestamp;
           final timestampB = (b.data() as Map<String, dynamic>)['timestamp'] as Timestamp;
-          return timestampB.compareTo(timestampA);  // Sort descending (most recent first)
+          return timestampB.compareTo(timestampA);
         });
 
-        // Debugging: Print complaints count
         print('Total complaints fetched: ${complaints.length}');
 
         return ListView.builder(
