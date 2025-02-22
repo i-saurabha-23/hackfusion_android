@@ -24,7 +24,10 @@ class _CampusFacilityBookingState extends State<CampusFacilityBooking> {
         '16:00-18:00',
         '18:00-20:00'
       ],
-      'description': 'Professional football ground with natural grass'
+      'description': 'Professional football ground with natural grass',
+      'maxCapacity': 1,
+      'allowMultiple': false,
+      'defaultMaxCap': 1
     },
     {
       'name': 'Gym',
@@ -37,7 +40,27 @@ class _CampusFacilityBookingState extends State<CampusFacilityBooking> {
         '17:30-19:00',
         '19:00-20:30'
       ],
-      'description': 'Fully equipped modern gymnasium'
+      'description': 'Fully equipped modern gymnasium',
+      'maxCapacity': 20,
+      'allowMultiple': true,
+      'defaultMaxCap': 20
+    },
+    {
+      'name': 'Hospital',
+      'category': 'Medical',
+      'timeSlots': [
+        '08:00-09:00',
+        '09:00-10:00',
+        '10:00-11:00',
+        '11:00-12:00',
+        '14:00-15:00',
+        '15:00-16:00',
+        '16:00-17:00'
+      ],
+      'description': 'Campus medical facility',
+      'maxCapacity': 6,
+      'allowMultiple': true,
+      'defaultMaxCap': 6
     },
     {
       'name': 'Basketball Court',
@@ -50,7 +73,10 @@ class _CampusFacilityBookingState extends State<CampusFacilityBooking> {
         '18:00-20:00',
         '20:00-22:00'
       ],
-      'description': 'Indoor basketball court with professional markings'
+      'description': 'Indoor basketball court with professional markings',
+      'maxCapacity': 1,
+      'allowMultiple': false,
+      'defaultMaxCap': 1
     },
     {
       'name': 'Swimming Pool',
@@ -63,7 +89,10 @@ class _CampusFacilityBookingState extends State<CampusFacilityBooking> {
         '17:30-19:00',
         '19:00-20:30'
       ],
-      'description': 'Olympic-sized swimming pool with professional lanes'
+      'description': 'Olympic-sized swimming pool with professional lanes',
+      'maxCapacity': 1,
+      'allowMultiple': false,
+      'defaultMaxCap': 1
     },
     {
       'name': 'Conference Hall',
@@ -75,22 +104,19 @@ class _CampusFacilityBookingState extends State<CampusFacilityBooking> {
         '15:00-17:00',
         '17:00-19:00'
       ],
-      'description': 'Modern conference hall with advanced facilities'
+      'description': 'Modern conference hall with advanced facilities',
+      'maxCapacity': 1,
+      'allowMultiple': false,
+      'defaultMaxCap': 1
     }
   ];
 
-  // Form Controllers
   final GlobalKey<FormState> _bookingFormKey = GlobalKey<FormState>();
-
-  // Booking Variables
   String? selectedCategory;
   String? selectedFacility;
   String? selectedTimeSlot;
   DateTime? selectedDate;
-
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
-  // Generate next 7 days
   late List<DateTime> nextSevenDays;
 
   @override
@@ -101,8 +127,7 @@ class _CampusFacilityBookingState extends State<CampusFacilityBooking> {
     });
   }
 
-  // Stream to get bookings
-  Stream<Map<DateTime, List<String>>> _getBookingsStream() {
+  Stream<Map<String, dynamic>> _getBookingsStream() {
     return _firestore
         .collection('SHOW-ALL')
         .doc('CAMPUS-BOOKINGS')
@@ -110,37 +135,65 @@ class _CampusFacilityBookingState extends State<CampusFacilityBooking> {
         .where('status', whereNotIn: ['Cancelled', 'Rejected'])
         .snapshots()
         .map((snapshot) {
-          Map<DateTime, List<String>> availabilityMap = {};
+          Map<DateTime, Map<String, Map<String, dynamic>>> availabilityMap = {};
 
           for (var doc in snapshot.docs) {
             DateTime bookingDate = DateTime.parse(doc['date']);
             String facility = doc['facility'];
             String timeSlot = doc['timeSlot'];
 
-            // Only add to map for the next 7 days
             if (nextSevenDays.any((day) =>
                 day.year == bookingDate.year &&
                 day.month == bookingDate.month &&
                 day.day == bookingDate.day)) {
               if (!availabilityMap.containsKey(bookingDate)) {
-                availabilityMap[bookingDate] = [];
+                availabilityMap[bookingDate] = {};
               }
-              availabilityMap[bookingDate]!.add(timeSlot);
+              if (!availabilityMap[bookingDate]!.containsKey(facility)) {
+                availabilityMap[bookingDate]![facility] = {};
+              }
+              if (!availabilityMap[bookingDate]![facility]!
+                  .containsKey(timeSlot)) {
+                var facilityData =
+                    facilities.firstWhere((f) => f['name'] == facility);
+                availabilityMap[bookingDate]![facility]![timeSlot] = {
+                  'count': 0,
+                  'maxCap': facilityData['defaultMaxCap']
+                };
+              }
+
+              availabilityMap[bookingDate]![facility]![timeSlot]['count'] =
+                  (availabilityMap[bookingDate]![facility]![timeSlot]
+                              ['count'] ??
+                          0) +
+                      1;
             }
           }
 
-          return availabilityMap;
+          return {
+            'bookings': availabilityMap,
+          };
         });
   }
 
-  // Comprehensive Booking Submission
+  bool _isSlotAvailable(
+    Map<DateTime, Map<String, Map<String, dynamic>>> bookingsMap,
+    DateTime date,
+    String facility,
+    String timeSlot,
+  ) {
+    var facilityData = facilities.firstWhere((f) => f['name'] == facility);
+    int defaultMaxCap = facilityData['defaultMaxCap'] as int;
+    int currentBookings =
+        bookingsMap[date]?[facility]?[timeSlot]?['count'] ?? 0;
+    return currentBookings < defaultMaxCap;
+  }
+
   Future<void> _submitBooking() async {
-    // Validate form
     if (!_bookingFormKey.currentState!.validate()) {
       return;
     }
 
-    // Check all required fields
     if (selectedCategory == null ||
         selectedFacility == null ||
         selectedTimeSlot == null ||
@@ -149,7 +202,24 @@ class _CampusFacilityBookingState extends State<CampusFacilityBooking> {
       return;
     }
 
-    // Get user email from UserController
+    var facilityData =
+        facilities.firstWhere((f) => f['name'] == selectedFacility);
+    int defaultMaxCap = facilityData['defaultMaxCap'] as int;
+
+    var bookingsSnapshot = await _firestore
+        .collection('SHOW-ALL')
+        .doc('CAMPUS-BOOKINGS')
+        .collection('DATA')
+        .where('date', isEqualTo: selectedDate!.toIso8601String())
+        .where('facility', isEqualTo: selectedFacility)
+        .where('timeSlot', isEqualTo: selectedTimeSlot)
+        .where('status', whereNotIn: ['Cancelled', 'Rejected']).get();
+
+    if (bookingsSnapshot.docs.length >= defaultMaxCap) {
+      _showErrorDialog('This slot has reached maximum capacity');
+      return;
+    }
+
     final UserController userController = Get.find();
     final String userEmail = userController.userEmail.value;
     final String userName = userController.userName.value;
@@ -159,7 +229,7 @@ class _CampusFacilityBookingState extends State<CampusFacilityBooking> {
       return;
     }
 
-    // Prepare booking data
+    String bookingId = _generateUniqueBookingId();
     Map<String, dynamic> bookingData = {
       'userEmail': userEmail,
       'userName': userName,
@@ -169,25 +239,24 @@ class _CampusFacilityBookingState extends State<CampusFacilityBooking> {
       'date': selectedDate!.toIso8601String(),
       'status': 'Approved',
       'timestamp': FieldValue.serverTimestamp(),
-      'bookingId': _generateUniqueBookingId(),
+      'bookingId': bookingId,
+      'maxCap': defaultMaxCap,
+      'currentCount': bookingsSnapshot.docs.length + 1
     };
 
     try {
-      // Save booking to Firestore
       await _firestore
           .collection('SHOW-ALL')
           .doc('CAMPUS-BOOKINGS')
           .collection('DATA')
-          .doc(_generateUniqueBookingId())
+          .doc(bookingId)
           .set(bookingData);
 
-      // Set isInitialized true
       await _firestore
           .collection('SHOW-ALL')
           .doc('CAMPUS-BOOKINGS')
           .set({'isInitialized': true}, SetOptions(merge: true));
 
-      // Reset form and show success
       _resetBookingForm();
       _showSuccessDialog('Booking submitted successfully!');
     } catch (e) {
@@ -195,12 +264,10 @@ class _CampusFacilityBookingState extends State<CampusFacilityBooking> {
     }
   }
 
-  // Generate a truly unique booking ID
   String _generateUniqueBookingId() {
     return '${selectedFacility}_${DateFormat('yyyyMMdd').format(selectedDate!)}_${selectedTimeSlot?.replaceAll(':', '')}_${DateTime.now().millisecondsSinceEpoch}';
   }
 
-  // Reset booking form
   void _resetBookingForm() {
     setState(() {
       selectedCategory = null;
@@ -215,17 +282,16 @@ class _CampusFacilityBookingState extends State<CampusFacilityBooking> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: StreamBuilder<Map<DateTime, List<String>>>(
+        child: StreamBuilder<Map<String, dynamic>>(
           stream: _getBookingsStream(),
           builder: (context, availabilitySnapshot) {
-            // Show loading indicator while fetching data
             if (!availabilitySnapshot.hasData) {
               return Center(child: CircularProgressIndicator());
             }
 
-            // Get the availability map
-            Map<DateTime, List<String>> availabilityMap =
-                availabilitySnapshot.data ?? {};
+            Map<DateTime, Map<String, Map<String, dynamic>>> bookingsMap =
+                availabilitySnapshot.data!['bookings']
+                    as Map<DateTime, Map<String, Map<String, dynamic>>>;
 
             return SingleChildScrollView(
               child: Padding(
@@ -236,7 +302,6 @@ class _CampusFacilityBookingState extends State<CampusFacilityBooking> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Header
                       Text(
                         'Book Campus Facilities',
                         style: TextStyle(
@@ -255,8 +320,6 @@ class _CampusFacilityBookingState extends State<CampusFacilityBooking> {
                         ),
                       ),
                       SizedBox(height: 30),
-
-                      // Category Dropdown
                       _buildDropdownWithDecoration(
                         hint: 'Select Facility Category',
                         value: selectedCategory,
@@ -278,10 +341,7 @@ class _CampusFacilityBookingState extends State<CampusFacilityBooking> {
                         },
                         icon: Icons.category_outlined,
                       ),
-
                       SizedBox(height: 20),
-
-                      // Facility Dropdown
                       if (selectedCategory != null)
                         _buildDropdownWithDecoration(
                           hint: 'Select Specific Facility',
@@ -290,7 +350,18 @@ class _CampusFacilityBookingState extends State<CampusFacilityBooking> {
                               .where((f) => f['category'] == selectedCategory)
                               .map((f) => DropdownMenuItem<String>(
                                     value: f['name'] as String,
-                                    child: Text(f['name'] as String),
+                                    child: Row(
+                                      children: [
+                                        Text(f['name'] as String),
+                                        Text(
+                                          ' (Max: ${f['defaultMaxCap']})',
+                                          style: TextStyle(
+                                            color: Colors.grey[600],
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ))
                               .toList(),
                           onChanged: (value) {
@@ -302,10 +373,7 @@ class _CampusFacilityBookingState extends State<CampusFacilityBooking> {
                           },
                           icon: Icons.sports_outlined,
                         ),
-
                       SizedBox(height: 20),
-
-                      // Date Selection
                       if (selectedFacility != null)
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -326,16 +394,18 @@ class _CampusFacilityBookingState extends State<CampusFacilityBooking> {
                                 itemCount: nextSevenDays.length,
                                 itemBuilder: (context, index) {
                                   DateTime date = nextSevenDays[index];
+                                  var facilityData = facilities.firstWhere(
+                                      (f) => f['name'] == selectedFacility);
 
-                                  // Check if the date is fully booked
-                                  List<String> bookedSlots =
-                                      availabilityMap[date] ?? [];
-                                  bool isFullyBooked = facilities
-                                      .firstWhere((f) =>
-                                          f['name'] ==
-                                          selectedFacility)['timeSlots']
-                                      .every(
-                                          (slot) => bookedSlots.contains(slot));
+                                  bool isFullyBooked =
+                                      facilityData['timeSlots'].every((slot) {
+                                    int currentBookings = bookingsMap[date]
+                                                ?[selectedFacility]?[slot]
+                                            ?['count'] ??
+                                        0;
+                                    return currentBookings >=
+                                        facilityData['defaultMaxCap'];
+                                  });
 
                                   bool isSelected =
                                       selectedDate?.day == date.day;
@@ -404,7 +474,7 @@ class _CampusFacilityBookingState extends State<CampusFacilityBooking> {
                                           ),
                                           if (isFullyBooked)
                                             Text(
-                                              'Booked',
+                                              'Fully Booked',
                                               style: TextStyle(
                                                 color: Colors.red,
                                                 fontSize: 10,
@@ -420,11 +490,8 @@ class _CampusFacilityBookingState extends State<CampusFacilityBooking> {
                             ),
                           ],
                         ),
-
                       SizedBox(height: 20),
-
-                      // Time Slots
-                      if (selectedDate != null)
+                      if (selectedDate != null && selectedFacility != null)
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -444,53 +511,64 @@ class _CampusFacilityBookingState extends State<CampusFacilityBooking> {
                                   .firstWhere((f) =>
                                       f['name'] ==
                                       selectedFacility)['timeSlots']
-                                  .where((slot) =>
-                                      !(availabilityMap[selectedDate] ?? [])
-                                          .contains(slot))
                                   .map<Widget>((slot) {
+                                var facilityData = facilities.firstWhere(
+                                    (f) => f['name'] == selectedFacility);
+                                int defaultMaxCap =
+                                    facilityData['defaultMaxCap'] as int;
+                                var slotData = bookingsMap[selectedDate]
+                                    ?[selectedFacility]?[slot];
+                                int currentCount = slotData?['count'] ?? 0;
+                                bool isAvailable = currentCount < defaultMaxCap;
                                 bool isSelected = selectedTimeSlot == slot;
-                                return ChoiceChip(
-                                  label: Text(
-                                    slot,
-                                    style: TextStyle(
-                                      color: isSelected
-                                          ? Colors.white
-                                          : Colors.black87,
+
+                                return Tooltip(
+                                  message: isAvailable
+                                      ? 'Available: ${currentCount}/${defaultMaxCap} spots'
+                                      : 'Fully Booked',
+                                  child: ChoiceChip(
+                                    label: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          slot,
+                                          style: TextStyle(
+                                            color: isSelected
+                                                ? Colors.white
+                                                : Colors.black87,
+                                          ),
+                                        ),
+                                        Text(
+                                          '$currentCount/$defaultMaxCap',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: isSelected
+                                                ? Colors.white70
+                                                : Colors.grey,
+                                          ),
+                                        ),
+                                      ],
                                     ),
+                                    selected: isSelected,
+                                    selectedColor: Colors.black,
+                                    backgroundColor: isAvailable
+                                        ? Colors.grey[200]
+                                        : Colors.red[100],
+                                    onSelected: isAvailable
+                                        ? (bool selected) {
+                                            setState(() {
+                                              selectedTimeSlot =
+                                                  selected ? slot : null;
+                                            });
+                                          }
+                                        : null,
                                   ),
-                                  selected: isSelected,
-                                  selectedColor: Colors.black,
-                                  backgroundColor: Colors.grey[200],
-                                  onSelected: (bool selected) {
-                                    setState(() {
-                                      selectedTimeSlot = selected ? slot : null;
-                                    });
-                                  },
                                 );
                               }).toList(),
                             ),
-                            if (facilities
-                                .firstWhere((f) =>
-                                    f['name'] == selectedFacility)['timeSlots']
-                                .every((slot) =>
-                                    (availabilityMap[selectedDate] ?? [])
-                                        .contains(slot)))
-                              Padding(
-                                padding: const EdgeInsets.only(top: 10),
-                                child: Text(
-                                  'All time slots for this date are booked.',
-                                  style: TextStyle(
-                                    color: Colors.red,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
                           ],
                         ),
-
-                      SizedBox(height: 20),
-
-                      // Book Now Button
+                      SizedBox(height: 30),
                       if (selectedCategory != null &&
                           selectedFacility != null &&
                           selectedDate != null &&
@@ -540,7 +618,6 @@ class _CampusFacilityBookingState extends State<CampusFacilityBooking> {
     );
   }
 
-  // Helper method for dropdown with icon and styling
   Widget _buildDropdownWithDecoration({
     required String hint,
     required dynamic value,
@@ -570,7 +647,6 @@ class _CampusFacilityBookingState extends State<CampusFacilityBooking> {
     );
   }
 
-  // Error Dialog
   void _showErrorDialog(String message) {
     showDialog(
       context: context,
@@ -587,7 +663,6 @@ class _CampusFacilityBookingState extends State<CampusFacilityBooking> {
     );
   }
 
-  // Success Dialog
   void _showSuccessDialog(String message) {
     showDialog(
       context: context,
