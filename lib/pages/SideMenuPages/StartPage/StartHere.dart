@@ -123,7 +123,7 @@ class _StartHereState extends State<StartHere> {
                               child: GestureDetector(
                                 onTap: () {
                                   switch (docId) {
-                                    case "CAMPUS-BOOKING":
+                                    case "CAMPUS-BOOKINGS":
                                       Navigator.push(context, MaterialPageRoute(
                                         builder: (context) => const CampusVenueBookings(),
                                       ));
