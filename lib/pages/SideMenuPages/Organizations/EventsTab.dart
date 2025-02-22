@@ -3,100 +3,103 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import 'AddEventPage.dart';
-import 'EventDetailsPage.dart'; // Importing the intl package for date formatting
+import 'EventDetailsPage.dart';
 
 class EventsTab extends StatelessWidget {
-  final String organizationId; // Accept organizationId as parameter
+  final String organizationId;
 
   const EventsTab({Key? key, required this.organizationId}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('Organization')
-          .doc(organizationId)
-          .collection('Events-Funds-Request') // Assuming Events is a sub-collection of Organization
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return const Center(child: Text('Error loading events'));
-        } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(child: Text('No events available'));
-        } else {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('Organization')
+            .doc(organizationId)
+            .collection('Events-Funds-Request')
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return _buildMessage('Error loading events');
+          } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return _buildMessage('No events available');
+          }
+
           var events = snapshot.data!.docs.map((doc) {
             return doc.data() as Map<String, dynamic>;
           }).toList();
 
-          // DateFormat to format the dates
           var dateFormat = DateFormat('yyyy-MM-dd');
 
-          return Scaffold(
-            backgroundColor: Colors.white,
-            body: ListView.builder(
-              itemCount: events.length,
-              itemBuilder: (context, index) {
-                var event = events[index];
-                // Parse the start and end dates from the event data
-                DateTime startDate = DateTime.parse(event['eventDates']['start']);
-                DateTime endDate = DateTime.parse(event['eventDates']['end']);
+          return ListView.builder(
+            itemCount: events.length,
+            itemBuilder: (context, index) {
+              var event = events[index];
+              DateTime startDate = DateTime.parse(event['eventDates']['start']);
+              DateTime endDate = DateTime.parse(event['eventDates']['end']);
 
-                // Format the dates using DateFormat
-                String startFormatted = dateFormat.format(startDate);
-                String endFormatted = dateFormat.format(endDate);
+              String startFormatted = dateFormat.format(startDate);
+              String endFormatted = dateFormat.format(endDate);
 
-                // Use doc.id to get the event's document ID
-                var eventId = snapshot.data!.docs[index].id;
+              var eventId = snapshot.data!.docs[index].id;
 
-                return Card(
-                  color: Colors.white,
-                  margin: const EdgeInsets.all(15.0),
-                  elevation: 4,
-                  child: GestureDetector(
-                    onTap: () {
-                      // Navigate to the Event Details Page
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => EventDetailsPage(
-                            organizationId: organizationId,
-                            eventId: eventId, // Pass the event id
-                          ),
+              return Card(
+                color: Colors.white,
+                margin: const EdgeInsets.all(15.0),
+                elevation: 4,
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => EventDetailsPage(
+                          organizationId: organizationId,
+                          eventId: eventId,
                         ),
-                      );
-                    },
-                    child: ListTile(
-                      title: Text(event['eventName'] ?? 'Unnamed Event'),
-                      subtitle: Text(
-                        'Approval Status: ${event['status'] ?? 'No status available'}\n'
-                            'Start Date: $startFormatted\n'
-                            'End Date: $endFormatted',
-                        style: TextStyle(fontSize: 14),
                       ),
+                    );
+                  },
+                  child: ListTile(
+                    title: Text(event['eventName'] ?? 'Unnamed Event'),
+                    subtitle: Text(
+                      'Approval Status: ${event['status'] ?? 'No status available'}\n'
+                      'Start Date: $startFormatted\n'
+                      'End Date: $endFormatted',
+                      style: TextStyle(fontSize: 14),
                     ),
                   ),
-                );
-              },
-            ),
-            floatingActionButton: FloatingActionButton(
-              onPressed: () {
-                // Navigate to the Add Event Page
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        AddEventPage(organizationId: organizationId),
-                  ),
-                );
-              },
-              backgroundColor: Colors.black,
-              child: const Icon(Icons.add, color: Colors.white),
+                ),
+              );
+            },
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  AddEventPage(organizationId: organizationId),
             ),
           );
-        }
-      },
+        },
+        backgroundColor: Colors.black,
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
+    );
+  }
+
+  Widget _buildMessage(String message) {
+    return Center(
+      child: Text(
+        message,
+        style: const TextStyle(fontSize: 20, color: Colors.black54),
+      ),
     );
   }
 }
