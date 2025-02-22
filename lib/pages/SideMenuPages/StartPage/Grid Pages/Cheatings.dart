@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:intl/intl.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
-import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 
 class Cheatings extends StatefulWidget {
   const Cheatings({Key? key}) : super(key: key);
@@ -43,7 +43,8 @@ class _CheatingsState extends State<Cheatings> {
                       height: 300,
                       color: Colors.grey[100],
                       child: const Center(
-                        child: Icon(Icons.error_outline, size: 50, color: Colors.black),
+                        child: Icon(Icons.error_outline,
+                            size: 50, color: Colors.black),
                       ),
                     ),
                     fit: BoxFit.contain,
@@ -60,7 +61,8 @@ class _CheatingsState extends State<Cheatings> {
                         color: Colors.black.withOpacity(0.6),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.close, color: Colors.white, size: 20),
+                      child: const Icon(Icons.close,
+                          color: Colors.white, size: 20),
                     ),
                   ),
                 ),
@@ -91,7 +93,11 @@ class _CheatingsState extends State<Cheatings> {
         ),
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: _firestore.collection('cheating_records').snapshots(),
+        stream: _firestore
+            .collection('SHOW-ALL')
+            .doc('CHEATING-RECORD')
+            .collection('DATA')
+            .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(
@@ -107,7 +113,8 @@ class _CheatingsState extends State<Cheatings> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error_outline, size: 60, color: Colors.black),
+                  const Icon(Icons.error_outline,
+                      size: 60, color: Colors.black),
                   const SizedBox(height: 16),
                   Text(
                     'Error: ${snapshot.error}',
@@ -124,7 +131,8 @@ class _CheatingsState extends State<Cheatings> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.warning_amber_rounded, size: 60, color: Colors.grey[400]),
+                  Icon(Icons.warning_amber_rounded,
+                      size: 60, color: Colors.grey[400]),
                   const SizedBox(height: 16),
                   Text(
                     'No cheating records found',
@@ -151,7 +159,7 @@ class _CheatingsState extends State<Cheatings> {
 
                 String formattedDate = data['timestamp'] != null
                     ? DateFormat('dd MMM yyyy • hh:mm a')
-                    .format((data['timestamp'] as Timestamp).toDate())
+                        .format((data['timestamp'] as Timestamp).toDate())
                     : 'Unknown date';
 
                 return AnimationConfiguration.staggeredList(
@@ -183,7 +191,8 @@ class _CheatingsState extends State<Cheatings> {
                                         padding: const EdgeInsets.all(12),
                                         decoration: BoxDecoration(
                                           color: Colors.black.withOpacity(0.05),
-                                          borderRadius: BorderRadius.circular(12),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
                                         ),
                                         child: const Icon(
                                           Icons.person,
@@ -195,7 +204,7 @@ class _CheatingsState extends State<Cheatings> {
                                       Expanded(
                                         child: Column(
                                           crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Text(
                                               data['name'] ?? 'Unknown Student',
@@ -225,7 +234,8 @@ class _CheatingsState extends State<Cheatings> {
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Row(
                                           children: [
@@ -257,7 +267,8 @@ class _CheatingsState extends State<Cheatings> {
                                             const SizedBox(width: 8),
                                             Expanded(
                                               child: Text(
-                                                data['reason'] ?? 'No reason provided',
+                                                data['reason'] ??
+                                                    'No reason provided',
                                                 style: const TextStyle(
                                                   fontSize: 15,
                                                   color: Colors.black87,
@@ -274,7 +285,8 @@ class _CheatingsState extends State<Cheatings> {
                             ),
                             // Image section
                             GestureDetector(
-                              onTap: () => _showImageDialog(data['proof'] ?? ''),
+                              onTap: () =>
+                                  _showImageDialog(data['proof'] ?? ''),
                               child: Container(
                                 height: 200,
                                 width: double.infinity,
@@ -292,7 +304,8 @@ class _CheatingsState extends State<Cheatings> {
                                     children: [
                                       CachedNetworkImage(
                                         imageUrl: data['proof'] ?? '',
-                                        placeholder: (context, url) => Container(
+                                        placeholder: (context, url) =>
+                                            Container(
                                           color: Colors.grey[100],
                                           child: Center(
                                             child: LoadingAnimationWidget
@@ -304,26 +317,26 @@ class _CheatingsState extends State<Cheatings> {
                                         ),
                                         errorWidget: (context, url, error) =>
                                             Container(
-                                              color: Colors.grey[100],
-                                              child: const Column(
-                                                mainAxisAlignment:
+                                          color: Colors.grey[100],
+                                          child: const Column(
+                                            mainAxisAlignment:
                                                 MainAxisAlignment.center,
-                                                children: [
-                                                  Icon(
-                                                    Icons.image_not_supported,
-                                                    size: 40,
-                                                    color: Colors.black54,
-                                                  ),
-                                                  SizedBox(height: 8),
-                                                  Text(
-                                                    'Image not available',
-                                                    style: TextStyle(
-                                                      color: Colors.black54,
-                                                    ),
-                                                  ),
-                                                ],
+                                            children: [
+                                              Icon(
+                                                Icons.image_not_supported,
+                                                size: 40,
+                                                color: Colors.black54,
                                               ),
-                                            ),
+                                              SizedBox(height: 8),
+                                              Text(
+                                                'Image not available',
+                                                style: TextStyle(
+                                                  color: Colors.black54,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
                                         fit: BoxFit.cover,
                                       ),
                                       Positioned(
@@ -335,8 +348,10 @@ class _CheatingsState extends State<Cheatings> {
                                             vertical: 6,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: Colors.black.withOpacity(0.6),
-                                            borderRadius: BorderRadius.circular(20),
+                                            color:
+                                                Colors.black.withOpacity(0.6),
+                                            borderRadius:
+                                                BorderRadius.circular(20),
                                           ),
                                           child: const Row(
                                             mainAxisSize: MainAxisSize.min,
