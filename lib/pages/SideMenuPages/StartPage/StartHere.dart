@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:hackfusion_android/pages/SideMenuPages/StartPage/Grid%20Pages/Cheatings.dart';
+import 'package:hackfusion_android/pages/SideMenuPages/StartPage/Grid%20Pages/Elections.dart';
 import 'Grid Pages/CampusVenueBookings.dart'; // Import the CampusVenueBookings screen
 import 'Grid Pages/Complaints.dart'; // Import the CampusVenueBookings screen
 
@@ -22,7 +23,7 @@ class _StartHereState extends State<StartHere> {
       // The route is not used here since we'll push CampusVenueBookings directly.
       'route': '/campus-venue-bookings',
     },
-    'Election Results': {
+    'ELECTIONS': {
       'icon': Icons.how_to_vote,
       'color': Colors.green,
       'route': '/elections',
@@ -108,12 +109,20 @@ class _StartHereState extends State<StartHere> {
                           builder: (context) => const Cheatings(),
                         ),
                       );
-                    }  else if (docId == "COMPLAINTS") {
+                    } else if (docId == "COMPLAINTS") {
                       // For CAMPUS-BOOKING, push CampusVenueBookings screen directly.
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => const Complaints(),
+                        ),
+                      );
+                    }  else if (docId == "ELECTIONS") {
+                      // For CAMPUS-BOOKING, push CampusVenueBookings screen directly.
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const Elections(),
                         ),
                       );
                     } else {

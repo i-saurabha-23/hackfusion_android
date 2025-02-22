@@ -1,11 +1,12 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
-import 'voting_page.dart';
-import 'view_result_page.dart';
-import 'package:get/get.dart';
+
 import '../../../auth/provider/UserAllDataProvier.dart';
+import 'view_result_page.dart';
+import 'voting_page.dart';
 
 class ActiveElection extends StatefulWidget {
   const ActiveElection({Key? key}) : super(key: key);
@@ -14,7 +15,8 @@ class ActiveElection extends StatefulWidget {
   State<ActiveElection> createState() => _ActiveElectionState();
 }
 
-class _ActiveElectionState extends State<ActiveElection> with SingleTickerProviderStateMixin {
+class _ActiveElectionState extends State<ActiveElection>
+    with SingleTickerProviderStateMixin {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final userController = Get.find<UserController>();
   late TabController _tabController;
@@ -23,7 +25,9 @@ class _ActiveElectionState extends State<ActiveElection> with SingleTickerProvid
   Future<bool> _hasUserVoted(String electionId) async {
     try {
       final userVoteDoc = await _firestore
-          .collection('Elections')
+          .collection('SHOW-ALL')
+          .doc('ELECTIONS')
+          .collection('DATA')
           .doc(electionId)
           .collection('USERVOTES')
           .doc(userController.userEmail.value)
@@ -203,7 +207,11 @@ class _ActiveElectionState extends State<ActiveElection> with SingleTickerProvid
 
   Widget _buildElectionsTab(bool voted) {
     return StreamBuilder<QuerySnapshot>(
-      stream: _firestore.collection('Elections').snapshots(),
+      stream: _firestore
+          .collection('SHOW-ALL')
+          .doc('ELECTIONS')
+          .collection('DATA')
+          .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return ListView.builder(
@@ -242,7 +250,9 @@ class _ActiveElectionState extends State<ActiveElection> with SingleTickerProvid
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  voted ? 'No voted elections yet' : 'No active elections available',
+                  voted
+                      ? 'No voted elections yet'
+                      : 'No active elections available',
                   style: const TextStyle(fontSize: 18, color: Colors.black38),
                 ),
               ],
@@ -307,9 +317,11 @@ class _ActiveElectionState extends State<ActiveElection> with SingleTickerProvid
                       ),
                       color: Colors.white,
                       child: ExpansionTile(
-                        tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        tilePadding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 12),
                         expandedCrossAxisAlignment: CrossAxisAlignment.start,
-                        childrenPadding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
+                        childrenPadding: const EdgeInsets.only(
+                            left: 20, right: 20, bottom: 20),
                         leading: CircleAvatar(
                           backgroundColor: Colors.black,
                           radius: 24,
@@ -333,7 +345,8 @@ class _ActiveElectionState extends State<ActiveElection> with SingleTickerProvid
                             const SizedBox(height: 6),
                             Row(
                               children: [
-                                const Icon(Icons.calendar_today, size: 14, color: Colors.black45),
+                                const Icon(Icons.calendar_today,
+                                    size: 14, color: Colors.black45),
                                 const SizedBox(width: 4),
                                 Text(
                                   'Start Date: $formattedDate',
@@ -345,15 +358,22 @@ class _ActiveElectionState extends State<ActiveElection> with SingleTickerProvid
                             Row(
                               children: [
                                 Icon(
-                                  hasVoted ? Icons.check_circle : Icons.pending_actions,
+                                  hasVoted
+                                      ? Icons.check_circle
+                                      : Icons.pending_actions,
                                   size: 14,
-                                  color: hasVoted ? Colors.black : Colors.black45,
+                                  color:
+                                      hasVoted ? Colors.black : Colors.black45,
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  hasVoted ? 'You have voted' : 'Awaiting your vote',
+                                  hasVoted
+                                      ? 'You have voted'
+                                      : 'Awaiting your vote',
                                   style: TextStyle(
-                                    color: hasVoted ? Colors.black : Colors.black45,
+                                    color: hasVoted
+                                        ? Colors.black
+                                        : Colors.black45,
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -387,7 +407,8 @@ class _ActiveElectionState extends State<ActiveElection> with SingleTickerProvid
                                 (hasVoted
                                     ? 'You have already cast your vote in this election.'
                                     : 'You can now cast your vote for your preferred candidate.'),
-                            style: const TextStyle(fontSize: 14, color: Colors.black87),
+                            style: const TextStyle(
+                                fontSize: 14, color: Colors.black87),
                           ),
                           const SizedBox(height: 20),
                           Row(
@@ -398,14 +419,16 @@ class _ActiveElectionState extends State<ActiveElection> with SingleTickerProvid
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => ViewResultPage(electionId: election.id),
+                                      builder: (context) => ViewResultPage(
+                                          electionId: election.id),
                                     ),
                                   );
                                 },
                                 style: ElevatedButton.styleFrom(
                                   foregroundColor: Colors.white,
                                   backgroundColor: Colors.black,
-                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 20, vertical: 12),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(10),
                                   ),
@@ -414,7 +437,9 @@ class _ActiveElectionState extends State<ActiveElection> with SingleTickerProvid
                                 icon: const Icon(Icons.bar_chart),
                                 label: const Text(
                                   'View Results',
-                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold),
                                 ),
                               ),
                               if (!hasVoted)
@@ -433,7 +458,8 @@ class _ActiveElectionState extends State<ActiveElection> with SingleTickerProvid
                                   style: ElevatedButton.styleFrom(
                                     foregroundColor: Colors.white,
                                     backgroundColor: Colors.black54,
-                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 20, vertical: 12),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(10),
                                     ),
@@ -442,7 +468,9 @@ class _ActiveElectionState extends State<ActiveElection> with SingleTickerProvid
                                   icon: const Icon(Icons.how_to_vote),
                                   label: const Text(
                                     'Vote Now',
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                    style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold),
                                   ),
                                 ),
                             ],

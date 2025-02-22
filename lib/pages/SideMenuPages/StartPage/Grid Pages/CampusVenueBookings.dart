@@ -106,12 +106,13 @@ class _CampusVenueBookingsState extends State<CampusVenueBookings> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        iconTheme: IconThemeData(color: Colors.white),
         title: const Text(
           "Campus Venue Bookings",
-          style: TextStyle(fontWeight: FontWeight.w600),
+          style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
         ),
         elevation: 2,
-        backgroundColor: Colors.blue.shade700,
+        backgroundColor: Colors.black,
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: _firestore
@@ -170,7 +171,7 @@ class _CampusVenueBookingsState extends State<CampusVenueBookings> {
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Colors.blue,
+                            color: Colors.black,
                           ),
                         ),
                         const Divider(height: 24),
