@@ -129,21 +129,13 @@ class _CampusVenueBookingsState extends State<CampusVenueBookings> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        iconTheme: IconThemeData(color: Colors.white),
+        title: Text('Facility Bookings', style: TextStyle(color: Colors.white),),
+        backgroundColor: Colors.black,
+      ),
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
-          SliverAppBar(
-            backgroundColor: Colors.black,
-            title: Text(
-              'Facility Bookings',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            centerTitle: true,
-            floating: true,
-            snap: true,
-          ),
           SliverPadding(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             sliver: SliverToBoxAdapter(

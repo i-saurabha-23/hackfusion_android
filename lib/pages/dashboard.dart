@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:hackfusion_android/pages/SideMenuPages/CampusBooking/LeaveApplication.dart';
 import 'package:hackfusion_android/pages/SideMenuPages/CampusBooking/booking.dart';
 import 'package:hackfusion_android/pages/SideMenuPages/CampusLocation/TrackLocation.dart';
 import 'package:hackfusion_android/pages/SideMenuPages/Elections_Votes/ActiveElection.dart';
@@ -22,17 +23,22 @@ class _DashboardState extends State<Dashboard> {
 
   final List<Widget> _pages = [
     StartHere(),
+    LeaveApplicationPage(),
     OrganizationPage(),
     ComplaintPage(),
     CampusFacilityBooking(),
     ActiveElection(),
     TrackPage(),
     Profile_Screen(),
+
   ];
 
   final List<Map<String, dynamic>> _appBarDetails = [
     {
       'title': 'Dashboard',
+      'color': Colors.black,
+    }, {
+      'title': 'Leave Application',
       'color': Colors.black,
     },
     {
@@ -144,11 +150,12 @@ class _DashboardState extends State<Dashboard> {
               ),
               const SizedBox(height: 10),
               _buildDrawerItem(Icons.dashboard_rounded, 'Dashboard', 0),
-              _buildDrawerItem(Icons.groups_rounded, 'Organization', 1),
-              _buildDrawerItem(Icons.report_problem_rounded, 'Complaints', 2),
-              _buildDrawerItem(Icons.warning_rounded, 'Campus Venue Booking', 3),
-              _buildDrawerItem(Icons.how_to_vote_outlined, 'Elections', 4),
-              _buildDrawerItem(Icons.how_to_vote_outlined, 'Demo Tracking', 5),
+              _buildDrawerItem(Icons.holiday_village, 'Leave Application', 1),
+              _buildDrawerItem(Icons.groups_rounded, 'Organization', 2),
+              _buildDrawerItem(Icons.report_problem_rounded, 'Complaints', 3),
+              _buildDrawerItem(Icons.sports_gymnastics, 'Campus Venue Booking', 4),
+              _buildDrawerItem(Icons.how_to_vote_outlined, 'Elections', 5),
+              _buildDrawerItem(Icons.location_on, 'Demo Tracking', 6),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Divider(color: Colors.grey.shade300, thickness: 1),
@@ -165,7 +172,7 @@ class _DashboardState extends State<Dashboard> {
                   ),
                 ),
               ),
-              _buildDrawerItem(Icons.person, 'Profile', 6),
+              _buildDrawerItem(Icons.person, 'Profile', 7),
               ListTile(
                 leading: Icon(Icons.exit_to_app, color: Colors.grey.shade700),
                 title: Text(

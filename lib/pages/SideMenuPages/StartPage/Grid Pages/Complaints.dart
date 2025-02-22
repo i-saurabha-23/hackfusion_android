@@ -13,8 +13,17 @@ class Complaints extends StatefulWidget {
 
 class _ComplaintsState extends State<Complaints> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final ScrollController _scrollController = ScrollController();
   bool _isGridView = false;
+
+  // Fetch complaints ordered by timestamp
+  Stream<QuerySnapshot> _fetchComplaints() {
+    return _firestore
+        .collection('SHOW-ALL')
+        .doc('COMPLAINTS')
+        .collection('DATA')
+        .orderBy('timestamp', descending: true)
+        .snapshots();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +48,7 @@ class _ComplaintsState extends State<Complaints> {
                 ),
               ),
               StreamBuilder<QuerySnapshot>(
-                stream: _firestore.collection('Complaints').snapshots(),
+                stream: _fetchComplaints(),
                 builder: (context, snapshot) {
                   final count =
                       snapshot.hasData ? snapshot.data!.docs.length : 0;
@@ -65,10 +74,7 @@ class _ComplaintsState extends State<Complaints> {
           ],
         ),
         body: StreamBuilder<QuerySnapshot>(
-          stream: _firestore
-              .collection('Complaints')
-              .orderBy('timestamp', descending: true)
-              .snapshots(),
+          stream: _fetchComplaints(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Center(
@@ -180,7 +186,6 @@ class _ComplaintsState extends State<Complaints> {
 
   Widget _buildListView(List<QueryDocumentSnapshot> complaints) {
     return ListView.builder(
-      controller: _scrollController,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       itemCount: complaints.length,
       itemBuilder: (context, index) {
@@ -218,24 +223,13 @@ class _ComplaintsState extends State<Complaints> {
                         color: Colors.black.withOpacity(0.7),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.access_time,
-                            size: 16,
-                            color: Colors.white,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            formattedDate,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        formattedDate,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ),
@@ -243,52 +237,14 @@ class _ComplaintsState extends State<Complaints> {
               ),
               Padding(
                 padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[100],
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Row(
-                            children: [
-                              Icon(
-                                Icons.person_outline,
-                                size: 16,
-                                color: Colors.black54,
-                              ),
-                              SizedBox(width: 6),
-                              Text(
-                                'Anonymous',
-                                style: TextStyle(
-                                  color: Colors.black54,
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      data['description'] ?? 'No description provided',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Colors.black87,
-                        height: 1.6,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  data['description'] ?? 'No description provided',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.black87,
+                    height: 1.6,
+                    letterSpacing: 0.2,
+                  ),
                 ),
               ),
             ],
@@ -304,102 +260,24 @@ class _ComplaintsState extends State<Complaints> {
       height: height,
       width: double.infinity,
       fit: BoxFit.cover,
-      placeholder: (context, url) => Container(
-        color: Colors.grey[200],
-        child: Center(
-          child: LoadingAnimationWidget.staggeredDotsWave(
-            color: Colors.black54,
-            size: 40,
-          ),
+      placeholder: (context, url) => Center(
+        child: LoadingAnimationWidget.staggeredDotsWave(
+          color: Colors.black54,
+          size: 40,
         ),
       ),
-      errorWidget: (context, url, error) => Container(
-        color: Colors.grey[100],
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.image_not_supported_outlined,
-              size: 40,
-              color: Colors.grey[400],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Image unavailable',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
+      errorWidget: (context, url, error) => Center(
+        child: Text('Image unavailable'),
       ),
     );
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.folder_off_outlined,
-            size: 80,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'No Reports Yet',
-            style: TextStyle(
-              color: Colors.grey[800],
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Reports will appear here once submitted',
-            style: TextStyle(
-              color: Colors.grey[600],
-              fontSize: 16,
-            ),
-          ),
-        ],
-      ),
-    );
+    return Center(child: Text('No Reports Yet'));
   }
 
   Widget _buildErrorState(String error) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.error_outline,
-            size: 80,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Something went wrong',
-            style: TextStyle(
-              color: Colors.grey[800],
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            error,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.grey[600],
-              fontSize: 16,
-            ),
-          ),
-        ],
-      ),
-    );
+    return Center(child: Text('Something went wrong: $error'));
   }
 
   String _formatDate(dynamic timestamp) {
