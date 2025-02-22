@@ -1,8 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:hackfusion_android/pages/SideMenuPages/Elections_Votes/view_result_page.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
+
+import '../../Elections_Votes/view_result_page.dart';
 
 class Elections extends StatefulWidget {
   const Elections({Key? key}) : super(key: key);
@@ -27,6 +28,7 @@ class _ElectionsState extends State<Elections>
       }
     });
   }
+
 
   Widget _buildShimmerCard() {
     return Padding(
@@ -159,13 +161,38 @@ class _ElectionsState extends State<Elections>
             ),
           );
         }
-        final elections = snapshot.data!.docs;
+
+        // Filter elections to show only those with showResult as true
+        final elections = snapshot.data!.docs
+            .where((election) => election['showResult'] == true)
+            .toList();
+
+        if (elections.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.how_to_vote_outlined,
+                  color: Colors.black38,
+                  size: 80,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'No results available yet',
+                  style: TextStyle(fontSize: 18, color: Colors.black38),
+                ),
+              ],
+            ),
+          );
+        }
 
         return ListView(
           children: elections.map((election) {
             final creationDateString = election['creationDate'] as String;
             final creationDate = DateTime.parse(creationDateString);
             final formattedDate = DateFormat('dd-MM-yyyy').format(creationDate);
+
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
               child: Card(
@@ -178,26 +205,26 @@ class _ElectionsState extends State<Elections>
                   leading: CircleAvatar(
                     backgroundColor: Colors.black,
                     radius: 24,
-                    child:
-                        Icon(Icons.how_to_vote, color: Colors.white, size: 24),
+                    child: Icon(Icons.how_to_vote, color: Colors.white, size: 24),
                   ),
                   title: Text(
-                    election['post'] ?? 'Election',
+                    'Election Results', // Changed to generic title
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Colors.black,
                     ),
                   ),
-                  subtitle: Text('Start Date: $formattedDate',
+                  subtitle: Text('Election Date: $formattedDate',
                       style: const TextStyle(color: Colors.black45)),
-                  trailing: Icon(Icons.arrow_forward_ios, color: Colors.black),
+                  trailing: Icon(Icons.bar_chart, color: Colors.black),
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>
-                            ViewResultPage(electionId: election.id),
+                        builder: (context) => ViewResultPage(
+                          electionId: election.id, // Empty to show full election results
+                        ),
                       ),
                     );
                   },
@@ -218,16 +245,16 @@ class _ElectionsState extends State<Elections>
         backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
-          "Elections",
+          "Election Results",
           style: TextStyle(color: Colors.white),
         ),
       ),
       body: _isLoading
           ? ListView.builder(
-              itemCount: 5,
-              padding: const EdgeInsets.only(top: 16),
-              itemBuilder: (context, index) => _buildShimmerCard(),
-            )
+        itemCount: 5,
+        padding: const EdgeInsets.only(top: 16),
+        itemBuilder: (context, index) => _buildShimmerCard(),
+      )
           : _buildElectionsList(),
     );
   }

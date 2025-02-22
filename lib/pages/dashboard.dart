@@ -24,7 +24,7 @@ class _DashboardState extends State<Dashboard> {
     StartHere(),
     OrganizationPage(),
     ComplaintPage(),
-    CampusBooking(),
+    CampusFacilityBooking(),
     ActiveElection(),
     TrackPage(),
     Profile_Screen(),

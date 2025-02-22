@@ -1,517 +1,444 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '/auth/provider/UserAllDataProvier.dart';
+import 'package:hackfusion_android/auth/provider/UserAllDataProvier.dart';
+import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class CampusBooking extends StatefulWidget {
-  const CampusBooking({Key? key}) : super(key: key);
+class CampusFacilityBooking extends StatefulWidget {
+  const CampusFacilityBooking({Key? key}) : super(key: key);
 
   @override
-  State<CampusBooking> createState() => _CampusBookingState();
+  _CampusFacilityBookingState createState() => _CampusFacilityBookingState();
 }
 
-class _CampusBookingState extends State<CampusBooking> {
-  final _firestore = FirebaseFirestore.instance;
-  final _formKey = GlobalKey<FormState>();
-  final _scrollController = ScrollController();
+class _CampusFacilityBookingState extends State<CampusFacilityBooking> {
+  // Comprehensive facility details
+  final List<Map<String, dynamic>> facilities = [
+    {
+      'name': 'Football Ground',
+      'category': 'Sports',
+      'timeSlots': [
+        '06:00-08:00', '08:00-10:00', '10:00-12:00',
+        '14:00-16:00', '16:00-18:00', '18:00-20:00'
+      ],
+      'description': 'Professional football ground with natural grass'
+    },
+    {
+      'name': 'Gym',
+      'category': 'Fitness',
+      'timeSlots': [
+        '06:00-07:30', '07:30-09:00', '09:00-10:30',
+        '16:00-17:30', '17:30-19:00', '19:00-20:30'
+      ],
+      'description': 'Fully equipped modern gymnasium'
+    },
+    {
+      'name': 'Basketball Court',
+      'category': 'Sports',
+      'timeSlots': [
+        '06:00-08:00', '08:00-10:00', '10:00-12:00',
+        '16:00-18:00', '18:00-20:00', '20:00-22:00'
+      ],
+      'description': 'Indoor basketball court with professional markings'
+    },
+    {
+      'name': 'Swimming Pool',
+      'category': 'Sports',
+      'timeSlots': [
+        '06:00-07:30', '07:30-09:00', '09:00-10:30',
+        '16:00-17:30', '17:30-19:00', '19:00-20:30'
+      ],
+      'description': 'Olympic-sized swimming pool with professional lanes'
+    },
+    {
+      'name': 'Conference Hall',
+      'category': 'Meeting',
+      'timeSlots': [
+        '08:00-10:00', '10:00-12:00', '13:00-15:00',
+        '15:00-17:00', '17:00-19:00'
+      ],
+      'description': 'Modern conference hall with advanced facilities'
+    }
+  ];
 
-  String? selectedVenue;
-  String? selectedDepartment;
-  String? selectedYear;
-  String? selectedSection;
-  DateTime? startDate;
-  DateTime? endDate;
+  // Form Controllers
+  final GlobalKey<FormState> _bookingFormKey = GlobalKey<FormState>();
 
-  final List<String> venues = ['Playground', 'Theater', 'Auditorium', 'Lab'];
-  final List<String> departments = ['CSE', 'ECE', 'MECH', 'CIVIL'];
-  final List<String> years = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
-  final List<String> sections = ['A', 'B', 'C', 'D'];
+  // Booking Variables
+  String? selectedCategory;
+  String? selectedFacility;
+  String? selectedTimeSlot;
+  DateTime? selectedDate;
 
-  final UserController userController = Get.put(UserController());
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Future<void> _selectDateTime(BuildContext context, bool isStart) async {
-    DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime.now(),
-      lastDate: DateTime(2101),
-    );
-    if (picked != null) {
-      TimeOfDay? pickedTime = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.now(),
-      );
-      if (pickedTime != null) {
-        setState(() {
-          if (isStart) {
-            startDate = DateTime(picked.year, picked.month, picked.day,
-                pickedTime.hour, pickedTime.minute);
-          } else {
-            endDate = DateTime(picked.year, picked.month, picked.day,
-                pickedTime.hour, pickedTime.minute);
-          }
-        });
-      }
+  @override
+  void initState() {
+    super.initState();
+    // Generate next 7 days
+    nextSevenDays = List.generate(7, (index) {
+      return DateTime.now().add(Duration(days: index));
+    });
+  }
+
+  List<DateTime> nextSevenDays = [];
+
+// Comprehensive Booking Submission
+  Future<void> _submitBooking() async {
+    // Validate form
+    if (!_bookingFormKey.currentState!.validate()) {
+      return;
+    }
+
+    // Check all required fields
+    if (selectedCategory == null ||
+        selectedFacility == null ||
+        selectedTimeSlot == null ||
+        selectedDate == null) {
+      _showErrorDialog('Please fill all booking details');
+      return;
+    }
+
+    // Get user email from UserController
+    final UserController userController = Get.find();
+    final String userEmail = userController.userEmail.value;
+
+    if (userEmail.isEmpty) {
+      _showErrorDialog('Please log in to make a booking');
+      return;
+    }
+
+    // Check booking availability with comprehensive conflict checking
+    bool isAvailable = await _checkBookingAvailability();
+    if (!isAvailable) {
+      _showErrorDialog('This slot is already booked. Please choose another time.');
+      return;
+    }
+
+    // Prepare booking data
+    Map<String, dynamic> bookingData = {
+      'userEmail': userEmail,
+      'category': selectedCategory,
+      'facility': selectedFacility,
+      'timeSlot': selectedTimeSlot,
+      'date': selectedDate!.toIso8601String(),
+      'status': 'Pending',
+      'timestamp': FieldValue.serverTimestamp(),
+      'bookingId': _generateUniqueBookingId(),
+    };
+
+    try {
+      // Save booking to Firestore with comprehensive conflict prevention
+      await _firestore
+          .collection('SHOW-ALL')
+          .doc('CAMPUS-BOOKINGS')
+          .collection('DATA')
+          .doc(_generateUniqueBookingId())
+          .set(bookingData);
+
+      // Set isInitialized true after creating the complaint document
+      await FirebaseFirestore.instance
+          .collection('SHOW-ALL')
+          .doc('CAMPUS-BOOKINGS')
+          .set({'isInitialized': true}, SetOptions(merge: true));
+
+      // Reset form and show success
+      _resetBookingForm();
+      _showSuccessDialog('Booking submitted successfully!');
+    } catch (e) {
+      _showErrorDialog('Booking failed: ${e.toString()}');
     }
   }
 
-  // Function to format the document name
-  Future<String> _generateDocumentName() async {
-    String formattedStartDate =
-        DateFormat("yyyy-MM-dd'T'HH:mm").format(startDate!);
-    String formattedEndDate = DateFormat("yyyy-MM-dd'T'HH:mm").format(endDate!);
-
-    return '${selectedVenue}_${formattedStartDate}_${formattedEndDate}';
+  // Generate a truly unique booking ID
+  String _generateUniqueBookingId() {
+    return '${selectedFacility}_${DateFormat('yyyyMMdd').format(selectedDate!)}_${selectedTimeSlot?.replaceAll(':', '')}_${DateTime.now().millisecondsSinceEpoch}';
   }
 
-// Function to check if the booking already exists with overlap logic
-  Future<bool> _checkIfBookingExists() async {
+  // Advanced Availability Checking
+  Future<bool> _checkBookingAvailability() async {
     try {
-      // Query to check if there are any bookings for the same venue, department, year, and section
-      // that overlap with the new booking's time range.
-      QuerySnapshot querySnapshot = await _firestore
+      // Complex query to check for any conflicting bookings
+      QuerySnapshot existingBookings = await _firestore
           .collection('SHOW-ALL')
-          .doc('CAMPUS-BOOKING')
+          .doc('CAMPUS-BOOKINGS')
           .collection('DATA')
-          .where('venue', isEqualTo: selectedVenue)
-          .where('department', isEqualTo: selectedDepartment)
-          .where('year', isEqualTo: selectedYear)
-          .where('section', isEqualTo: selectedSection)
+          .where('facility', isEqualTo: selectedFacility)
+          .where('date', isEqualTo: selectedDate!.toIso8601String())
+          .where('timeSlot', isEqualTo: selectedTimeSlot)
+          .where('status', whereNotIn: ['Cancelled', 'Rejected'])
           .get();
 
-      // Check each booking's time range for overlap
-      for (var doc in querySnapshot.docs) {
-        DateTime existingStartDate = DateTime.parse(doc['startDate']);
-        DateTime existingEndDate = DateTime.parse(doc['endDate']);
-
-        // Check if the new booking's start and end date overlap with the existing ones
-        if ((startDate!.isBefore(existingEndDate) &&
-                endDate!.isAfter(existingStartDate)) ||
-            (startDate!.isAtSameMomentAs(existingStartDate) ||
-                endDate!.isAtSameMomentAs(existingEndDate))) {
-          return true; // There is an overlap, so the booking cannot be made
-        }
-      }
-      return false; // No overlap, booking can be made
+      return existingBookings.docs.isEmpty;
     } catch (e) {
-      print('Error checking booking existence: $e');
+      print('Availability check error: $e');
       return false;
     }
   }
 
-  // Function to submit the booking with user info
-  Future<void> _submitBooking() async {
-    if (selectedVenue == null ||
-        selectedDepartment == null ||
-        selectedYear == null ||
-        selectedSection == null ||
-        startDate == null ||
-        endDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all fields')),
-      );
-      return;
-    }
-
-    String userEmail = userController.userEmail.value;
-    String userName = userController.userName.value;
-    String userMobile = userController.userPhone.value;
-    String userDept = userController.userDepartment.value;
-    String userClass = userController.userYear.value;
-    String userSection = userController.userSection.value;
-
-    bool doesBookingExist = await _checkIfBookingExists();
-    if (doesBookingExist) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text(
-                'Selected venue is already booked for the selected time. Please choose another time.')),
-      );
-      return;
-    }
-
-    Map<String, dynamic> bookingData = {
-      'venue': selectedVenue,
-      'department': selectedDepartment,
-      'year': selectedYear,
-      'section': selectedSection,
-      'startDate': startDate!.toIso8601String(),
-      'endDate': endDate!.toIso8601String(),
-      'status': 'Pending',
-      'userEmail': userEmail,
-      'userName': userName,
-      'userMobile': userMobile,
-      'userDepartment': userDept,
-      'userClass': userClass,
-      'userSection': userSection,
-    };
-
-    try {
-      CollectionReference showAllCollection = _firestore.collection('SHOW-ALL');
-      String documentName = await _generateDocumentName();
-      DocumentReference campusBookingDoc =
-          showAllCollection.doc('CAMPUS-BOOKING');
-
-      await campusBookingDoc.set({
-        'initialized': true,
-      }, SetOptions(merge: true));
-
-      CollectionReference dataSubCollection =
-          campusBookingDoc.collection('DATA');
-
-      DocumentReference bookingDoc = dataSubCollection.doc(documentName);
-      await bookingDoc.set(bookingData);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Booking submitted successfully!')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
-    }
-  }
-
-  Widget _buildFormField({
-    required String label,
-    required List<String> items,
-    required String? value,
-    required Function(String?) onChanged,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: DropdownButtonFormField<String>(
-        value: value,
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: TextStyle(color: Colors.grey[700]),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.grey[300]!),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.grey[300]!),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.black, width: 2),
-          ),
-          filled: true,
-          fillColor: Colors.white,
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        ),
-        items: items.map((String item) {
-          return DropdownMenuItem(
-            value: item,
-            child: Text(item),
-          );
-        }).toList(),
-        onChanged: onChanged,
-        validator: (value) => value == null ? 'This field is required' : null,
-      ),
-    );
-  }
-
-  Widget _buildDateTimePicker({
-    required String label,
-    required DateTime? dateTime,
-    required bool isStart,
-  }) {
-    return InkWell(
-      onTap: () => _selectDateTime(context, isStart),
-      child: Container(
-        margin: EdgeInsets.symmetric(vertical: 8),
-        padding: EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey[300]!),
-          borderRadius: BorderRadius.circular(10),
-          color: Colors.white,
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.calendar_today, color: Colors.black),
-            SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      color: Colors.grey[700],
-                      fontSize: 14,
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    dateTime == null
-                        ? 'Select date and time'
-                        : DateFormat('MMM dd, yyyy - hh:mm a').format(dateTime),
-                    style: TextStyle(
-                      fontSize: 16,
-                      color:
-                          dateTime == null ? Colors.grey[600] : Colors.black87,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBookingCard(Map<String, dynamic> booking) {
-    final startDate = DateTime.parse(booking['startDate']);
-    final endDate = DateTime.parse(booking['endDate']);
-    final status = booking['status'] as String;
-
-    Color statusColor = status.toLowerCase() == 'approved'
-        ? Colors.green
-        : status.toLowerCase() == 'pending'
-            ? Colors.orange
-            : Colors.red;
-
-    return Card(
-      color: Colors.white,
-      elevation: 2,
-      margin: EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  booking['venue'],
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    status,
-                    style: TextStyle(
-                      color: statusColor,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 12),
-            Text(
-              '${booking['department']}, ${booking['year']}, Section ${booking['section']}',
-              style: TextStyle(
-                color: Colors.grey[700],
-                fontSize: 15,
-              ),
-            ),
-            SizedBox(height: 12),
-            Row(
-              children: [
-                Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
-                SizedBox(width: 8),
-                Text(
-                  '${DateFormat('MMM dd, hh:mm a').format(startDate)} - \n${DateFormat('MMM dd, hh:mm a').format(endDate)}',
-                  style: TextStyle(color: Colors.grey[800]),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
+  // Reset booking form
+  void _resetBookingForm() {
+    setState(() {
+      selectedCategory = null;
+      selectedFacility = null;
+      selectedTimeSlot = null;
+      selectedDate = null;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SingleChildScrollView(
-        controller: _scrollController,
-        child: SafeArea(
+      body: SafeArea(
+        child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.all(20.0),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
             child: Form(
-              key: _formKey,
+              key: _bookingFormKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Card(
-                    color: Colors.white,
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
+                  // Header with Modern Typography
+                  Text(
+                    'Book Campus Facilities',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                      letterSpacing: -0.5,
                     ),
-                    child: Padding(
-                      padding: EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Booking Details',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
+                  ),
+                  SizedBox(height: 10),
+                  Text(
+                    'Select your preferred facility and time slot',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  SizedBox(height: 30),
+
+                  // Category Dropdown with Enhanced Design
+                  _buildDropdownWithDecoration(
+                    hint: 'Select Facility Category',
+                    value: selectedCategory,
+                    items: facilities
+                        .map((f) => f['category'] as String)
+                        .toSet()
+                        .map((category) => DropdownMenuItem<String>(
+                              value: category,
+                              child: Text(category),
+                            ))
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedCategory = value;
+                        selectedFacility = null;
+                        selectedTimeSlot = null;
+                        selectedDate = null;
+                      });
+                    },
+                    icon: Icons.category_outlined,
+                  ),
+
+                  SizedBox(height: 20),
+
+                  // Facility Dropdown (Filtered by Category)
+                  if (selectedCategory != null)
+                    _buildDropdownWithDecoration(
+                      hint: 'Select Specific Facility',
+                      value: selectedFacility,
+                      items: facilities
+                          .where((f) => f['category'] == selectedCategory)
+                          .map((f) => DropdownMenuItem<String>(
+                                value: f['name'] as String,
+                                child: Text(f['name'] as String),
+                              ))
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedFacility = value;
+                          selectedTimeSlot = null;
+                          selectedDate = null;
+                        });
+                      },
+                      icon: Icons.sports_outlined,
+                    ),
+
+                  SizedBox(height: 20),
+
+                  // Improved Date Selection
+                  if (selectedFacility != null)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Select Date',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
                           ),
-                          SizedBox(height: 16),
-                          _buildFormField(
-                            label: 'Select Venue',
-                            items: venues,
-                            value: selectedVenue,
-                            onChanged: (value) =>
-                                setState(() => selectedVenue = value),
-                          ),
-                          _buildFormField(
-                            label: 'Select Department',
-                            items: departments,
-                            value: selectedDepartment,
-                            onChanged: (value) =>
-                                setState(() => selectedDepartment = value),
-                          ),
-                          _buildFormField(
-                            label: 'Select Year',
-                            items: years,
-                            value: selectedYear,
-                            onChanged: (value) =>
-                                setState(() => selectedYear = value),
-                          ),
-                          _buildFormField(
-                            label: 'Select Section',
-                            items: sections,
-                            value: selectedSection,
-                            onChanged: (value) =>
-                                setState(() => selectedSection = value),
-                          ),
-                          SizedBox(height: 8),
-                          _buildDateTimePicker(
-                            label: 'Start Date & Time',
-                            dateTime: startDate,
-                            isStart: true,
-                          ),
-                          _buildDateTimePicker(
-                            label: 'End Date & Time',
-                            dateTime: endDate,
-                            isStart: false,
-                          ),
-                          SizedBox(height: 24),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 50,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                if (_formKey.currentState!.validate()) {
-                                  _submitBooking();
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.black,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
+                        ),
+                        SizedBox(height: 10),
+                        SizedBox(
+                          height: 110,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: nextSevenDays.length,
+                            itemBuilder: (context, index) {
+                              DateTime date = nextSevenDays[index];
+                              bool isSelected = selectedDate?.day == date.day;
+                              return GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    selectedDate = date;
+                                    selectedTimeSlot = null;
+                                  });
+                                },
+                                child: Container(
+                                  width: 110,
+                                  margin: EdgeInsets.only(right: 12),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? Colors.black
+                                        : Colors.grey[200],
+                                    borderRadius: BorderRadius.circular(15),
+                                    boxShadow: isSelected
+                                        ? [
+                                            BoxShadow(
+                                              color:
+                                                  Colors.blue.withOpacity(0.3),
+                                              blurRadius: 10,
+                                              offset: Offset(0, 4),
+                                            )
+                                          ]
+                                        : null,
+                                  ),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        DateFormat('EEE').format(date),
+                                        style: TextStyle(
+                                          color: isSelected
+                                              ? Colors.white
+                                              : Colors.black87,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      SizedBox(height: 5),
+                                      Text(
+                                        DateFormat('dd').format(date),
+                                        style: TextStyle(
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                          color: isSelected
+                                              ? Colors.white
+                                              : Colors.black87,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                elevation: 2,
-                              ),
-                              child: Text(
-                                'Submit Booking Request',
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+
+                  SizedBox(height: 20),
+
+                  // Time Slots with Improved Design
+                  if (selectedDate != null)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Available Time Slots',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        SizedBox(height: 10),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: facilities
+                              .firstWhere((f) => f['name'] == selectedFacility)[
+                                  'timeSlots']
+                              .map<Widget>((slot) {
+                            bool isSelected = selectedTimeSlot == slot;
+                            return ChoiceChip(
+                              label: Text(
+                                slot,
                                 style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : Colors.black87,
                                 ),
                               ),
-                            ),
-                          ),
+                              selected: isSelected,
+                              selectedColor: Colors.black,
+                              backgroundColor: Colors.grey[200],
+                              onSelected: (bool selected) {
+                                setState(() {
+                                  selectedTimeSlot = selected ? slot : null;
+                                });
+                              },
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
+
+                  SizedBox(height: 20),
+
+                  // Book Now Button with Modern Design
+                  if (selectedCategory != null &&
+                      selectedFacility != null &&
+                      selectedDate != null &&
+                      selectedTimeSlot != null)
+                    Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(15),
+                        color: Colors.black,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.blue.withOpacity(0.4),
+                            blurRadius: 15,
+                            offset: Offset(0, 8),
+                          )
                         ],
                       ),
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          padding: EdgeInsets.symmetric(vertical: 15),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                        ),
+                        onPressed: _submitBooking,
+                        child: Text(
+                          'Book Facility',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 24),
-                  Text(
-                    'My Bookings',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                  ),
-                  SizedBox(height: 16),
-                  StreamBuilder<QuerySnapshot>(
-                    stream: _firestore
-                        .collection('SHOW-ALL')
-                        .doc('CAMPUS-BOOKING')
-                        .collection('DATA')
-                        .where('userEmail',
-                            isEqualTo: userController.userEmail.value)
-                        .snapshots(),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return Center(
-                          child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.black),
-                          ),
-                        );
-                      }
-
-                      if (snapshot.hasError) {
-                        return Center(
-                          child: Text(
-                            'Error loading bookings',
-                            style: TextStyle(color: Colors.red),
-                          ),
-                        );
-                      }
-
-                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                        return Center(
-                          child: Column(
-                            children: [
-                              Icon(
-                                Icons.calendar_today_outlined,
-                                size: 48,
-                                color: Colors.grey[400],
-                              ),
-                              SizedBox(height: 16),
-                              Text(
-                                'No bookings found',
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }
-
-                      final bookings = snapshot.data!.docs
-                          .map((doc) => doc.data() as Map<String, dynamic>)
-                          .toList();
-
-                      return Column(
-                        children: bookings
-                            .map((booking) => _buildBookingCard(booking))
-                            .toList(),
-                      );
-                    },
-                  ),
                 ],
               ),
             ),
@@ -521,5 +448,85 @@ class _CampusBookingState extends State<CampusBooking> {
     );
   }
 
-// Keep the existing helper methods (_selectDateTime, _generateDocumentName, _checkIfBookingExists, _submitBooking)
+  // Helper method for dropdown with icon and styling
+  Widget _buildDropdownWithDecoration({
+    required String hint,
+    required dynamic value,
+    required List<DropdownMenuItem<String>> items,
+    required void Function(String?)? onChanged,
+    required IconData icon,
+  }) {
+    return DropdownButtonFormField<String>(
+      decoration: InputDecoration(
+        hintText: hint,
+        prefixIcon: Icon(icon, color: Colors.black),
+        filled: true,
+        fillColor: Colors.grey[100],
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: BorderSide.none,
+        ),
+      ),
+      value: value,
+      hint: Text(hint, style: TextStyle(color: Colors.grey[600])),
+      validator: (value) => value == null ? 'Please select an option' : null,
+      items: items,
+      onChanged: onChanged,
+      icon: Icon(Icons.arrow_drop_down_rounded, color: Colors.black),
+      dropdownColor: Colors.white,
+      style: TextStyle(color: Colors.black87, fontSize: 16),
+    );
+  }
+
+  // Input Decoration Helper
+  InputDecoration _inputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: Colors.grey.shade300),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: Colors.black, width: 2),
+      ),
+    );
+  }
+
+  // Error Dialog
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Booking Error'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Success Dialog
+  void _showSuccessDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Booking Successful'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
 }

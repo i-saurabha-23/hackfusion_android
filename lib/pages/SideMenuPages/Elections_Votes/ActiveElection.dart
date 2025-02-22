@@ -1,12 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:hackfusion_android/pages/SideMenuPages/Elections_Votes/voting_page.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
-
 import '../../../auth/provider/UserAllDataProvier.dart';
 import 'view_result_page.dart';
-import 'voting_page.dart';
 
 class ActiveElection extends StatefulWidget {
   const ActiveElection({Key? key}) : super(key: key);
@@ -22,8 +21,9 @@ class _ActiveElectionState extends State<ActiveElection>
   late TabController _tabController;
   bool _isLoading = true;
 
-  Future<bool> _hasUserVoted(String electionId) async {
+  Future<bool> _hasUserVotedForAllPosts(String electionId) async {
     try {
+      // Fetch the user's voting document for this election
       final userVoteDoc = await _firestore
           .collection('SHOW-ALL')
           .doc('ELECTIONS')
@@ -33,8 +33,30 @@ class _ActiveElectionState extends State<ActiveElection>
           .doc(userController.userEmail.value)
           .get();
 
-      return userVoteDoc.exists && (userVoteDoc.data()?['voted'] ?? false);
+      // If the document doesn't exist, return false
+      if (!userVoteDoc.exists) {
+        return false;
+      }
+
+      // Get the election document to check available posts
+      final electionDoc = await _firestore
+          .collection('SHOW-ALL')
+          .doc('ELECTIONS')
+          .collection('DATA')
+          .doc(electionId)
+          .get();
+
+      // Get all posts from the election
+      final List<dynamic> posts = electionDoc.data()?['posts'] ?? [];
+
+      // Check if all posts have been voted
+      final userVoteData = userVoteDoc.data()?['posts_voted'] ?? {};
+
+      return posts.every((post) =>
+      userVoteData[post['post']] == true
+      );
     } catch (e) {
+      print('Error checking user votes: $e');
       return false;
     }
   }
@@ -43,7 +65,6 @@ class _ActiveElectionState extends State<ActiveElection>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    // Simulate initial loading
     Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) {
         setState(() {
@@ -60,9 +81,7 @@ class _ActiveElectionState extends State<ActiveElection>
   }
 
   void _refreshElections() {
-    setState(() {
-      // This will trigger a rebuild of the widget
-    });
+    setState(() {});
   }
 
   Widget _buildShimmerCard() {
@@ -77,7 +96,7 @@ class _ActiveElectionState extends State<ActiveElection>
             borderRadius: BorderRadius.circular(16),
           ),
           child: Container(
-            height: 120,
+            height: 180,
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -138,69 +157,147 @@ class _ActiveElectionState extends State<ActiveElection>
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    if (_isLoading) {
-      return Scaffold(
-        backgroundColor: Colors.white,
-        body: Column(
+  Widget _buildElectionCard(
+      DocumentSnapshot election, bool voted, int electionIndex) {
+    final creationDateString = election['creationDate'] as String;
+    final creationDate = DateTime.parse(creationDateString);
+    final formattedDate = DateFormat('dd-MM-yyyy').format(creationDate);
+
+    // Check if results are ready to be shown
+    final bool showResults = election['showResult'] ?? false;
+
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              color: Colors.black,
-              padding: const EdgeInsets.only(top: 8, bottom: 8),
-              child: TabBar(
-                labelColor: Colors.white,
-                indicatorColor: Colors.white,
-                unselectedLabelColor: Colors.grey,
-                indicatorWeight: 3,
-                controller: _tabController,
-                tabs: const [
-                  Tab(text: 'Available Elections'),
-                  Tab(text: 'Voted Elections'),
-                ],
-              ),
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: Colors.black,
+                  radius: 24,
+                  child: Text(
+                    'E${electionIndex + 1}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Election ${electionIndex + 1}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Created on: $formattedDate',
+                        style: const TextStyle(
+                          color: Colors.black54,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: 5,
-                padding: const EdgeInsets.only(top: 16),
-                itemBuilder: (context, index) => _buildShimmerCard(),
-              ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: showResults
+                      ? () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ViewResultPage(
+                          electionId: election.id,
+                          postName: '', // Empty as we're viewing entire election
+                        ),
+                      ),
+                    );
+                  }
+                      : null, // Disable button if showResults is false
+                  style: ElevatedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    backgroundColor: Colors.black,
+                    disabledBackgroundColor: Colors.grey.shade300,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    elevation: 2,
+                  ),
+                  icon: const Icon(Icons.bar_chart),
+                  label: Text(
+                    'View Results',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: showResults
+                          ? Colors.white
+                          : Colors.black54,
+                    ),
+                  ),
+                ),
+                if (!voted)
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      // Extract all candidates from all posts
+                      final List<dynamic> postsData =
+                      election['posts'] as List<dynamic>;
+                      final List<dynamic> allCandidates =
+                      postsData.expand((post) =>
+                      post['candidates'] as List<dynamic>).toList();
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SequentialMultiPostVotingPage(
+                            electionId: election.id,
+                            onVoteSubmitted: _refreshElections,
+                          ),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      backgroundColor: Colors.black54,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      elevation: 2,
+                    ),
+                    icon: const Icon(Icons.how_to_vote),
+                    label: const Text(
+                      'Vote Now',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ],
         ),
-      );
-    }
-
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          Container(
-            color: Colors.black,
-            padding: const EdgeInsets.only(top: 8, bottom: 8),
-            child: TabBar(
-              labelColor: Colors.white,
-              indicatorColor: Colors.white,
-              unselectedLabelColor: Colors.grey,
-              indicatorWeight: 3,
-              controller: _tabController,
-              tabs: const [
-                Tab(text: 'Available Elections'),
-                Tab(text: 'Voted Elections'),
-              ],
-            ),
-          ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildElectionsTab(false),
-                _buildElectionsTab(true),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -289,196 +386,18 @@ class _ActiveElectionState extends State<ActiveElection>
           itemCount: elections.length,
           itemBuilder: (context, index) {
             final election = elections[index];
-            final creationDateString = election['creationDate'] as String;
-            final creationDate = DateTime.parse(creationDateString);
-            final formattedDate = DateFormat('dd-MM-yyyy').format(creationDate);
 
             return FutureBuilder<bool>(
-              future: _hasUserVoted(election.id),
+              future: _hasUserVotedForAllPosts(election.id),
               builder: (context, voteSnapshot) {
                 if (voteSnapshot.connectionState == ConnectionState.waiting) {
                   return _buildShimmerCard();
                 }
 
-                bool hasVoted = voteSnapshot.data ?? false;
+                final hasVotedAllPosts = voteSnapshot.data ?? false;
 
-                if (hasVoted == voted) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Card(
-                      margin: EdgeInsets.zero,
-                      elevation: 4,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        side: BorderSide(
-                          color: hasVoted ? Colors.black54 : Colors.black26,
-                          width: 1,
-                        ),
-                      ),
-                      color: Colors.white,
-                      child: ExpansionTile(
-                        tilePadding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 12),
-                        expandedCrossAxisAlignment: CrossAxisAlignment.start,
-                        childrenPadding: const EdgeInsets.only(
-                            left: 20, right: 20, bottom: 20),
-                        leading: CircleAvatar(
-                          backgroundColor: Colors.black,
-                          radius: 24,
-                          child: Icon(
-                            hasVoted ? Icons.how_to_vote : Icons.ballot,
-                            color: Colors.white,
-                            size: 24,
-                          ),
-                        ),
-                        title: Text(
-                          election['post'],
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                          ),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 6),
-                            Row(
-                              children: [
-                                const Icon(Icons.calendar_today,
-                                    size: 14, color: Colors.black45),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Start Date: $formattedDate',
-                                  style: const TextStyle(color: Colors.black45),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                Icon(
-                                  hasVoted
-                                      ? Icons.check_circle
-                                      : Icons.pending_actions,
-                                  size: 14,
-                                  color:
-                                      hasVoted ? Colors.black : Colors.black45,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  hasVoted
-                                      ? 'You have voted'
-                                      : 'Awaiting your vote',
-                                  style: TextStyle(
-                                    color: hasVoted
-                                        ? Colors.black
-                                        : Colors.black45,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        trailing: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Padding(
-                            padding: EdgeInsets.all(8.0),
-                            child: Icon(Icons.expand_more, color: Colors.black),
-                          ),
-                        ),
-                        children: [
-                          const Divider(height: 24, color: Colors.black26),
-                          const Text(
-                            'Election Details',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'This election was created on $formattedDate and is currently active. ' +
-                                (hasVoted
-                                    ? 'You have already cast your vote in this election.'
-                                    : 'You can now cast your vote for your preferred candidate.'),
-                            style: const TextStyle(
-                                fontSize: 14, color: Colors.black87),
-                          ),
-                          const SizedBox(height: 20),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              ElevatedButton.icon(
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => ViewResultPage(
-                                          electionId: election.id),
-                                    ),
-                                  );
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  backgroundColor: Colors.black,
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 20, vertical: 12),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  elevation: 2,
-                                ),
-                                icon: const Icon(Icons.bar_chart),
-                                label: const Text(
-                                  'View Results',
-                                  style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                              if (!hasVoted)
-                                ElevatedButton.icon(
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => VotingPage(
-                                          electionId: election.id,
-                                          onVoteSubmitted: _refreshElections,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    foregroundColor: Colors.white,
-                                    backgroundColor: Colors.black54,
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 20, vertical: 12),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    elevation: 2,
-                                  ),
-                                  icon: const Icon(Icons.how_to_vote),
-                                  label: const Text(
-                                    'Vote Now',
-                                    style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
+                if (voted == hasVotedAllPosts) {
+                  return _buildElectionCard(election, hasVotedAllPosts, index);
                 } else {
                   return const SizedBox.shrink();
                 }
@@ -487,6 +406,73 @@ class _ActiveElectionState extends State<ActiveElection>
           },
         );
       },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: Column(
+          children: [
+            Container(
+              color: Colors.black,
+              padding: const EdgeInsets.only(top: 8, bottom: 8),
+              child: TabBar(
+                labelColor: Colors.white,
+                indicatorColor: Colors.white,
+                unselectedLabelColor: Colors.grey,
+                indicatorWeight: 3,
+                controller: _tabController,
+                tabs: const [
+                  Tab(text: 'Available Elections'),
+                  Tab(text: 'Voted Elections'),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: 5,
+                padding: const EdgeInsets.only(top: 16),
+                itemBuilder: (context, index) => _buildShimmerCard(),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Column(
+        children: [
+          Container(
+            color: Colors.black,
+            padding: const EdgeInsets.only(top: 8, bottom: 8),
+            child: TabBar(
+              labelColor: Colors.white,
+              indicatorColor: Colors.white,
+              unselectedLabelColor: Colors.grey,
+              indicatorWeight: 3,
+              controller: _tabController,
+              tabs: const [
+                Tab(text: 'Available Elections'),
+                Tab(text: 'Voted Elections'),
+              ],
+            ),
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildElectionsTab(false),
+                _buildElectionsTab(true),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
