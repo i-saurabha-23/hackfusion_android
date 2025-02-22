@@ -1,9 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:hackfusion_android/pages/SideMenuPages/StartPage/Grid%20Pages/Cheatings.dart';
 import 'package:hackfusion_android/pages/SideMenuPages/StartPage/Grid%20Pages/Elections.dart';
-import 'Grid Pages/CampusVenueBookings.dart'; // Import the CampusVenueBookings screen
-import 'Grid Pages/Complaints.dart'; // Import the CampusVenueBookings screen
+import 'Grid Pages/CampusVenueBookings.dart';
+import 'Grid Pages/Complaints.dart';
 
 class StartHere extends StatefulWidget {
   const StartHere({Key? key}) : super(key: key);
@@ -15,37 +16,41 @@ class StartHere extends StatefulWidget {
 class _StartHereState extends State<StartHere> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Mapping each document id to its corresponding icon, color, and route.
   final Map<String, Map<String, dynamic>> categoryProperties = {
     'CAMPUS-BOOKING': {
       'icon': Icons.book_online,
-      'color': Colors.purple,
-      // The route is not used here since we'll push CampusVenueBookings directly.
+      'color': Color(0xFF845EC2),
+      'description': 'Book venues for your events',
       'route': '/campus-venue-bookings',
     },
     'ELECTIONS': {
       'icon': Icons.how_to_vote,
-      'color': Colors.green,
+      'color': Color(0xFF00C2A8),
+      'description': 'Campus election portal',
       'route': '/elections',
     },
     'Events': {
       'icon': Icons.event,
-      'color': Colors.blue,
+      'color': Color(0xFF2C73D2),
+      'description': 'Upcoming campus events',
       'route': '/events',
     },
     'CHEATING-RECORD': {
       'icon': Icons.warning,
-      'color': Colors.orange,
+      'color': Color(0xFFFF6F91),
+      'description': 'Report academic misconduct',
       'route': '/cheatings',
     },
     'COMPLAINTS': {
       'icon': Icons.report_problem,
-      'color': Colors.red,
+      'color': Color(0xFFFF9671),
+      'description': 'Submit your complaints',
       'route': '/complaints',
     },
     'Annual Budget': {
       'icon': Icons.assessment,
-      'color': Colors.teal,
+      'color': Color(0xFF4B4453),
+      'description': 'View financial details',
       'route': '/budget',
     },
   };
@@ -53,122 +58,160 @@ class _StartHereState extends State<StartHere> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF5F6FA),
       body: SafeArea(
-        child: StreamBuilder<QuerySnapshot>(
-          stream: _firestore.collection("SHOW-ALL").snapshots(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-              return const Center(child: Text("No items found."));
-            }
-            final docs = snapshot.data!.docs;
-            return GridView.builder(
-              padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 1.0,
-              ),
-              itemCount: docs.length,
-              itemBuilder: (context, index) {
-                final doc = docs[index];
-                // Use the document's ID as the title.
-                final String docId = doc.id;
-                // Lookup the properties for this document; if not found, apply defaults.
-                final properties = categoryProperties[docId] ??
-                    {
-                      'icon': Icons.widgets,
-                      'color': Colors.blue,
-                      'route': '/',
-                    };
-                final icon = properties['icon'] as IconData;
-                final color = properties['color'] as Color;
-                final route = properties['route'] as String;
-
-                return InkWell(
-                  splashColor: Colors.white24,
-                  highlightColor: Colors.white10,
-                  onTap: () {
-                    if (docId == "CAMPUS-BOOKING") {
-                      // For CAMPUS-BOOKING, push CampusVenueBookings screen directly.
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const CampusVenueBookings(),
-                        ),
-                      );
-                    } else if (docId == "CHEATING-RECORD") {
-                      // For CAMPUS-BOOKING, push CampusVenueBookings screen directly.
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const Cheatings(),
-                        ),
-                      );
-                    } else if (docId == "COMPLAINTS") {
-                      // For CAMPUS-BOOKING, push CampusVenueBookings screen directly.
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const Complaints(),
-                        ),
-                      );
-                    }  else if (docId == "ELECTIONS") {
-                      // For CAMPUS-BOOKING, push CampusVenueBookings screen directly.
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const Elections(),
-                        ),
-                      );
-                    } else {
-                      // Otherwise, use the named route.
-                      Navigator.pushNamed(context, route);
-                    }
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [color, color.withOpacity(0.8)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: _firestore.collection("SHOW-ALL").snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF845EC2)),
                       ),
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: color.withOpacity(0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Center(
+                    );
+                  }
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return Center(
                       child: Column(
-                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(icon, size: 40, color: Colors.white),
-                          const SizedBox(height: 12),
+                          Icon(Icons.warning, size: 64, color: Colors.grey),
+                          SizedBox(height: 16),
                           Text(
-                            docId,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                            "No items found",
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.grey,
                             ),
                           ),
                         ],
                       ),
+                    );
+                  }
+
+                  final docs = snapshot.data!.docs;
+                  return AnimationLimiter(
+                    child: GridView.builder(
+                      padding: const EdgeInsets.all(16),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        childAspectRatio: 0.85,
+                      ),
+                      itemCount: docs.length,
+                      itemBuilder: (context, index) {
+                        final doc = docs[index];
+                        final String docId = doc.id;
+                        final properties = categoryProperties[docId] ?? {
+                          'icon': Icons.widgets,
+                          'color': Colors.blue,
+                          'description': 'No description available',
+                          'route': '/',
+                        };
+
+                        return AnimationConfiguration.staggeredGrid(
+                          position: index,
+                          duration: const Duration(milliseconds: 375),
+                          columnCount: 2,
+                          child: ScaleAnimation(
+                            child: FadeInAnimation(
+                              child: GestureDetector(
+                                onTap: () {
+                                  switch (docId) {
+                                    case "CAMPUS-BOOKING":
+                                      Navigator.push(context, MaterialPageRoute(
+                                        builder: (context) => const CampusVenueBookings(),
+                                      ));
+                                      break;
+                                    case "CHEATING-RECORD":
+                                      Navigator.push(context, MaterialPageRoute(
+                                        builder: (context) => const Cheatings(),
+                                      ));
+                                      break;
+                                    case "COMPLAINTS":
+                                      Navigator.push(context, MaterialPageRoute(
+                                        builder: (context) => const Complaints(),
+                                      ));
+                                      break;
+                                    case "ELECTIONS":
+                                      Navigator.push(context, MaterialPageRoute(
+                                        builder: (context) => const Elections(),
+                                      ));
+                                      break;
+                                    default:
+                                      Navigator.pushNamed(context, properties['route']);
+                                  }
+                                },
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(20),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: properties['color'].withOpacity(0.1),
+                                        blurRadius: 10,
+                                        offset: Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Container(
+                                        padding: EdgeInsets.all(16),
+                                        decoration: BoxDecoration(
+                                          color: properties['color'].withOpacity(0.1),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(
+                                          properties['icon'],
+                                          size: 32,
+                                          color: properties['color'],
+                                        ),
+                                      ),
+                                      SizedBox(height: 16),
+                                      Text(
+                                        docId,
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                      SizedBox(height: 8),
+                                      Padding(
+                                        padding: EdgeInsets.symmetric(horizontal: 12),
+                                        child: Text(
+                                          properties['description'],
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.black54,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  ),
-                );
-              },
-            );
-          },
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
