@@ -223,6 +223,23 @@ class _CampusFacilityBookingState extends State<CampusFacilityBooking> {
     final UserController userController = Get.find();
     final String userEmail = userController.userEmail.value;
     final String userName = userController.userName.value;
+    final String parentEmail = userController.userParentsEmail.value;
+
+    // Get faculty email from Firestore
+    QuerySnapshot facultySnapshot = await _firestore
+        .collection('Faculties')
+        .where('department', isEqualTo: userController.userDepartment.value)
+        .where('year', isEqualTo: userController.userYear.value)
+        .where('section', isEqualTo: userController.userSection.value)
+        .where('isCoordinator', isEqualTo: true)
+        .get();
+
+    if (facultySnapshot.docs.isEmpty) {
+      throw Exception('No faculty coordinator found.');
+    }
+
+    String facultyEmail = facultySnapshot.docs.first['email'] as String;
+    print("Faculty Email: $facultyEmail");
 
     if (userEmail.isEmpty) {
       _showErrorDialog('Please log in to make a booking');
@@ -232,6 +249,8 @@ class _CampusFacilityBookingState extends State<CampusFacilityBooking> {
     String bookingId = _generateUniqueBookingId();
     Map<String, dynamic> bookingData = {
       'userEmail': userEmail,
+      'parentEmail': parentEmail,
+      'facultyEmail': facultyEmail,
       'userName': userName,
       'category': selectedCategory,
       'facility': selectedFacility,

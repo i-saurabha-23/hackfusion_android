@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -6,6 +7,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:get/get.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
 import '../../../auth/provider/UserAllDataProvier.dart';
@@ -171,7 +173,9 @@ class _ApplyLeaveTabState extends State<ApplyLeaveTab> {
       );
 
       await ref.putFile(_proofFile!, metadata);
-      return await ref.getDownloadURL();
+      String downloadUrl = await ref.getDownloadURL();
+      print('Proof uploaded: $downloadUrl');
+      return downloadUrl;
     } catch (e) {
       print('Error uploading proof: $e');
       return null;
@@ -195,39 +199,137 @@ class _ApplyLeaveTabState extends State<ApplyLeaveTab> {
     setState(() => _isSubmitting = true);
 
     try {
-      String? proofUrl;
-      if (_proofFile != null) {
-        proofUrl = await _uploadProof();
+      String baseUrl = Platform.isAndroid
+          ? 'https://symphony-force-wanting-camcorders.trycloudflare.com'
+          : Platform.isIOS
+              ? 'http://localhost:5000'
+              : 'http://YOUR_MACHINE_IP:5000';
+
+      // Test server connection
+      try {
+        final healthCheck = await http
+            .get(Uri.parse(baseUrl))
+            .timeout(const Duration(seconds: 5));
+        if (healthCheck.statusCode != 200) {
+          throw Exception('Server is not responding properly');
+        }
+      } catch (e) {
+        print("Server connection failed: $e");
+        throw Exception(
+            'Cannot connect to server. Please check if the server is running.');
       }
 
-      await _firestore.collection('leave_applications').add({
-        'studentEmail': userController.userEmail.value,
-        'studentName': userController.userName.value,
-        'startDate': Timestamp.fromDate(_startDate!),
-        'endDate': Timestamp.fromDate(_endDate!),
+      // Get faculty email from Firestore
+      QuerySnapshot facultySnapshot = await _firestore
+          .collection('Faculties')
+          .where('department', isEqualTo: userController.userDepartment.value)
+          .where('year', isEqualTo: userController.userYear.value)
+          .where('section', isEqualTo: userController.userSection.value)
+          .where('isCoordinator', isEqualTo: true)
+          .get();
+
+      if (facultySnapshot.docs.isEmpty) {
+        throw Exception('No faculty coordinator found.');
+      }
+
+      String facultyEmail = facultySnapshot.docs.first['email'] as String;
+      print("Faculty Email: $facultyEmail");
+
+      int duration = _endDate!.difference(_startDate!).inDays + 1;
+
+      // Upload proof file to Firebase Storage
+      String? proofUrl = await _uploadProof();
+
+      // Prepare leave application data
+      Map<String, dynamic> leaveData = {
+        'name': userController.userName.value ?? '',
+        'email': userController.userEmail.value ?? '',
+        'facultyEmail': facultyEmail,
+        'parentEmail': userController.userParentsEmail.value ?? '',
         'reason': _reasonController.text,
-        'isHosteler': _isHosteler,
-        'proofUrl': proofUrl,
-        'status': 'In Review',
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+        'startDate': _startDate!.toIso8601String(),
+        'endDate': _endDate!.toIso8601String(),
+        'duration': duration,
+        'status': 'Pending', // Default status
+        'timestamp': FieldValue.serverTimestamp(),
+        'proofUrl': proofUrl ?? '', // Store URL in Firestore
+      };
 
-      _resetForm();
+      // Store application in Firestore
+      DocumentReference leaveRef =
+          await _firestore.collection('leave_applications').add(leaveData);
 
-      Get.snackbar(
-        'Success',
-        'Leave application submitted successfully',
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      print("Leave Application Stored: ${leaveRef.id}");
+
+      // Prepare multipart request for email
+      var uri = Uri.parse('$baseUrl/send-email');
+      var request = http.MultipartRequest('POST', uri);
+      request.fields.addAll(
+          leaveData.map((key, value) => MapEntry(key, value.toString())));
+
+      // Attach the actual file to the email request
+      if (_proofFile != null) {
+        try {
+          var fileStream = http.ByteStream(_proofFile!.openRead());
+          var length = await _proofFile!.length();
+
+          var multipartFile = http.MultipartFile(
+              'proofFile', fileStream, length,
+              filename: _proofFile!.path.split('/').last);
+
+          request.files.add(multipartFile);
+          print("File attached successfully");
+        } catch (e) {
+          print("Error attaching file: $e");
+          throw Exception('Failed to attach supporting document');
+        }
+      }
+
+      // Send the request
+      try {
+        var streamedResponse = await request.send().timeout(
+          const Duration(seconds: 30),
+          onTimeout: () {
+            throw TimeoutException('Request timed out. Please try again.');
+          },
+        );
+
+        // Get the response
+        var response = await http.Response.fromStream(streamedResponse);
+
+        if (response.statusCode == 200) {
+          Get.snackbar(
+            'Success',
+            'Leave application submitted successfully',
+            backgroundColor: Colors.green,
+            colorText: Colors.white,
+            snackPosition: SnackPosition.BOTTOM,
+          );
+
+          // Update Firestore status to "Submitted"
+          await leaveRef.update({'status': 'In Review'});
+        } else {
+          print("Server response: ${response.body}");
+          throw Exception(
+              'Failed to submit application: ${response.statusCode}');
+        }
+      } catch (e) {
+        print("Error sending request: $e");
+        if (e is TimeoutException) {
+          throw Exception(
+              'Request timed out. Please check your internet connection and try again.');
+        }
+        throw Exception('Failed to send application: ${e.toString()}');
+      }
     } catch (e) {
+      print("Error: $e");
       Get.snackbar(
         'Error',
-        'Failed to submit application',
+        e.toString().replaceAll('Exception: ', ''),
         backgroundColor: Colors.red,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 5),
       );
     } finally {
       setState(() => _isSubmitting = false);
@@ -504,8 +606,8 @@ class ViewApplicationsTab extends StatelessWidget {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('leave_applications')
-          .where('studentEmail', isEqualTo: userController.userEmail.value)
-          .orderBy('createdAt', descending: true)
+          .where('email', isEqualTo: userController.userEmail.value)
+          .orderBy('timestamp', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
@@ -584,25 +686,36 @@ class ApplicationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final startDate = (data['startDate'] as Timestamp).toDate();
-    final endDate = (data['endDate'] as Timestamp).toDate();
-    final status = data['status'] as String;
-    final isHosteler = data['isHosteler'] as bool;
-    final proofUrl = data['proofUrl'] as String?;
+    // Ensure timestamp conversion
+    final Timestamp? createdAtTimestamp = data['createdAt'] as Timestamp?;
+    final DateTime createdAt =
+        createdAtTimestamp?.toDate() ?? DateTime.now(); // Fallback value
 
-    Color statusColor;
-    switch (status.toLowerCase()) {
-      case 'approved':
-        statusColor = Colors.green;
-        break;
-      case 'rejected':
-        statusColor = Colors.red;
-        break;
-      default:
-        statusColor = Colors.orange;
-    }
+    // Convert start and end dates safely
+    final DateTime startDate = (data['startDate'] is Timestamp)
+        ? (data['startDate'] as Timestamp).toDate()
+        : DateTime.parse(data['startDate']);
+    final DateTime endDate = (data['endDate'] is Timestamp)
+        ? (data['endDate'] as Timestamp).toDate()
+        : DateTime.parse(data['endDate']);
 
-    final duration = endDate.difference(startDate).inDays + 1;
+    // Calculate duration
+    final int duration =
+        data['duration'] ?? (endDate.difference(startDate).inDays + 1);
+
+    // Status and Color Mapping
+    final String status = data['status'] ?? 'Pending';
+    final Color statusColor = status == 'Approved'
+        ? Colors.green
+        : status == 'Rejected'
+            ? Colors.red
+            : Colors.orange;
+
+    // Check for proof attachment
+    final String? proofUrl = data['proofUrl'];
+
+    // Hosteler status (optional field)
+    final bool isHosteler = data['isHosteler'] ?? false;
 
     return Card(
       color: Colors.white,
@@ -635,9 +748,7 @@ class ApplicationCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        DateFormat('MMM dd').format(startDate) +
-                            ' - ' +
-                            DateFormat('MMM dd').format(endDate),
+                        '${DateFormat('MMM dd').format(startDate)} - ${DateFormat('MMM dd').format(endDate)}',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -673,7 +784,7 @@ class ApplicationCard extends StatelessWidget {
               ),
               SizedBox(height: 12),
               Text(
-                data['reason'],
+                data['reason'] ?? 'No reason provided',
                 style: TextStyle(
                   fontSize: 14,
                   height: 1.4,
@@ -702,7 +813,7 @@ class ApplicationCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                  if (proofUrl != null)
+                  if (proofUrl != null && proofUrl.isNotEmpty)
                     Container(
                       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
@@ -733,7 +844,7 @@ class ApplicationCard extends StatelessWidget {
               ),
               SizedBox(height: 8),
               Text(
-                'Applied: ${DateFormat('MMM dd, yyyy').format((data['createdAt'] as Timestamp).toDate())}',
+                'Applied: ${DateFormat('MMM dd, yyyy').format(createdAt)}',
                 style: TextStyle(
                   color: Colors.grey.shade600,
                   fontSize: 12,
@@ -747,10 +858,12 @@ class ApplicationCard extends StatelessWidget {
   }
 }
 
-void showFullScreenLeaveDetails(BuildContext context, Map<String, dynamic> data) {
+void showFullScreenLeaveDetails(
+    BuildContext context, Map<String, dynamic> data) {
   showModalBottomSheet(
     context: context,
-    isScrollControlled: true, // Allows full-screen height
+    isScrollControlled: true,
+    // Allows full-screen height
     backgroundColor: Colors.white,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -767,12 +880,23 @@ class ApplicationDetailsSheet extends StatelessWidget {
 
   ApplicationDetailsSheet({required this.data});
 
+  DateTime _parseDateTime(dynamic value) {
+    if (value is Timestamp) {
+      return value.toDate();
+    } else if (value is String) {
+      return DateTime.parse(value);
+    }
+    // Fallback to current date if parsing fails
+    return DateTime.now();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final startDate = (data['startDate'] as Timestamp).toDate();
-    final endDate = (data['endDate'] as Timestamp).toDate();
-    final status = data['status'] as String;
-    final isHosteler = data['isHosteler'] as bool;
+    // Safely parse dates
+    final startDate = _parseDateTime(data['startDate']);
+    final endDate = _parseDateTime(data['endDate']);
+    final status = data['status'] as String? ?? 'Pending';
+    final isHosteler = data['isHosteler'] as bool? ?? false;
     final proofUrl = data['proofUrl'] as String?;
 
     Color statusColor;
@@ -788,12 +912,11 @@ class ApplicationDetailsSheet extends StatelessWidget {
     }
 
     return Container(
-      height: MediaQuery.of(context).size.height * 0.9, // 90% height
+      height: MediaQuery.of(context).size.height * 0.9,
       padding: EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -809,31 +932,39 @@ class ApplicationDetailsSheet extends StatelessWidget {
                 ),
                 child: Text(
                   status,
-                  style: TextStyle(color: statusColor, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                      color: statusColor,
+                      fontWeight: FontWeight.w600
+                  ),
                 ),
               ),
             ],
           ),
           SizedBox(height: 20),
 
-          // Scrollable Content
           Expanded(
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildDetailRow('Start Date', DateFormat('MMM dd, yyyy').format(startDate)),
-                  _buildDetailRow('End Date', DateFormat('MMM dd, yyyy').format(endDate)),
-                  _buildDetailRow('Duration', '${endDate.difference(startDate).inDays + 1} days'),
-                  _buildDetailRow('Reason', data['reason']),
+                  _buildDetailRow('Start Date',
+                      DateFormat('MMM dd, yyyy').format(startDate)),
+                  _buildDetailRow(
+                      'End Date', DateFormat('MMM dd, yyyy').format(endDate)),
+                  _buildDetailRow('Duration',
+                      '${endDate.difference(startDate).inDays + 1} days'),
+                  _buildDetailRow('Reason', data['reason'] ?? 'No reason provided'),
                   if (isHosteler) _buildDetailRow('Accommodation', 'Hosteler'),
-                  if (proofUrl != null)
-                    _buildDetailRow('Document', 'Attached', isLink: true, onTap: () {
-                      // Handle document viewing
-                    }),
+                  if (proofUrl != null && proofUrl.isNotEmpty)
+                    _buildDetailRow('Document', 'Attached', isLink: true,
+                        onTap: () {
+                          // Handle document viewing
+                        }),
                   _buildDetailRow(
                     'Applied On',
-                    DateFormat('MMM dd, yyyy').format((data['createdAt'] as Timestamp).toDate()),
+                    DateFormat('MMM dd, yyyy').format(
+                      _parseDateTime(data['createdAt'] ?? DateTime.now()),
+                    ),
                   ),
                   SizedBox(height: 20),
                 ],
@@ -841,7 +972,6 @@ class ApplicationDetailsSheet extends StatelessWidget {
             ),
           ),
 
-          // Close Button at Bottom
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -855,7 +985,11 @@ class ApplicationDetailsSheet extends StatelessWidget {
               ),
               child: Text(
                 'Close',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white
+                ),
               ),
             ),
           ),
@@ -864,7 +998,8 @@ class ApplicationDetailsSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailRow(String label, String value, {bool isLink = false, VoidCallback? onTap}) {
+  Widget _buildDetailRow(String label, String value,
+      {bool isLink = false, VoidCallback? onTap}) {
     return Padding(
       padding: EdgeInsets.only(bottom: 16),
       child: Column(
@@ -872,7 +1007,11 @@ class ApplicationDetailsSheet extends StatelessWidget {
         children: [
           Text(
             label,
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+            style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w500
+            ),
           ),
           SizedBox(height: 4),
           if (isLink)
@@ -880,11 +1019,21 @@ class ApplicationDetailsSheet extends StatelessWidget {
               onTap: onTap,
               child: Text(
                 value,
-                style: TextStyle(fontSize: 16, color: Colors.blue, decoration: TextDecoration.underline),
+                style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.blue,
+                    decoration: TextDecoration.underline
+                ),
               ),
             )
           else
-            Text(value, style: TextStyle(fontSize: 16, color: Colors.black)),
+            Text(
+                value,
+                style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.black
+                )
+            ),
         ],
       ),
     );
